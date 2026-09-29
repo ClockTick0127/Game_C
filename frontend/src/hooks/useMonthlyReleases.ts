@@ -53,6 +53,8 @@ export function useMonthlyReleases(year: number, month: number) {
   }, [state]);
 
   return {
+    /** 인기순 (백엔드가 RAWG 인기순으로 내려준다) */
+    games: state.status === 'success' ? state.data.games : [],
     gamesByDate,
     totalCount: state.status === 'success' ? state.data.games.length : 0,
     isSample: state.status === 'success' && state.data.sample,

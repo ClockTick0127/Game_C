@@ -24,6 +24,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  /* 한글이 "표 / 시됩니다"처럼 단어 중간에서 줄바꿈되지 않게 한다 */
+  word-break: keep-all;
 }
 
 button {
@@ -37,7 +39,7 @@ a {
 }
 
 .app {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 0 16px 40px;
 }
@@ -303,16 +305,18 @@ a {
   line-height: 1;
 }
 
-.modal-body {
+/* ---------- 게임 상세 (사이드 패널 · 모달 공용) ---------- */
+.detail-body {
   padding: 20px;
 }
 
-.modal-title {
-  margin: 0 40px 4px 0;
+.detail-title {
+  margin: 0 0 4px;
   font-size: 20px;
+  overflow-wrap: anywhere;
 }
 
-.modal-sub {
+.detail-sub {
   margin: 0 0 16px;
   color: var(--text-dim);
   font-size: 14px;
@@ -605,6 +609,250 @@ input:focus {
   text-align: center;
 }
 
+/* ---------- 게임 상세의 Steam 평가 · 스토어 바로가기 ---------- */
+.store-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0 0 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.store-block h3 {
+  margin: 0 0 8px;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.steam-rating {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.steam-rating:hover {
+  background: #272c3b;
+}
+
+.steam-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.steam-label {
+  font-size: 15px;
+}
+
+.steam-count {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.steam-bar {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.steam-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+
+/* Steam 스토어의 평가 색 */
+.steam-label.positive {
+  color: #66c0f4;
+}
+.steam-label.mixed {
+  color: #c9a45c;
+}
+.steam-label.negative {
+  color: #e2735a;
+}
+.steam-bar-fill.positive {
+  background: #66c0f4;
+}
+.steam-bar-fill.mixed {
+  background: #c9a45c;
+}
+.steam-bar-fill.negative {
+  background: #e2735a;
+}
+
+.metascore {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: none;
+}
+
+a.metascore:hover {
+  background: #272c3b;
+}
+
+/* 메타크리틱의 점수 상자 */
+.metascore-badge {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: #111;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.metascore-badge.good {
+  background: #66cc33;
+}
+.metascore-badge.mixed {
+  background: #ffcc33;
+}
+.metascore-badge.bad {
+  background: #ff5a4f;
+}
+
+.metascore-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metascore-text strong {
+  font-size: 14px;
+}
+
+.metascore-text span {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.metascore-link {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.steam-empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.store-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.store-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* 스토어별 색 점 */
+.store-btn::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--store-color, var(--text-dim));
+}
+
+.store-btn:hover {
+  border-color: var(--store-color, var(--text-dim));
+}
+
+.store-btn span {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.store-steam {
+  --store-color: #66c0f4;
+}
+.store-epic-games {
+  --store-color: #f5f5f5;
+}
+.store-gog {
+  --store-color: #b565f0;
+}
+.store-playstation-store {
+  --store-color: #3b82f6;
+}
+.store-xbox-store,
+.store-xbox360 {
+  --store-color: #52b043;
+}
+.store-nintendo {
+  --store-color: #e60012;
+}
+
+.store-error {
+  margin: 0 0 16px;
+}
+
+/* 불러오는 중 자리 표시 */
+.skeleton {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, #2a2f3e 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 60px;
+}
+
+.skeleton-pill {
+  width: 96px;
+  height: 32px;
+  border-radius: 16px;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
 /* ---------- 게임 상세의 관심 게임 버튼 ---------- */
 .detail-actions {
   display: flex;
@@ -777,6 +1025,218 @@ input:focus {
 
 .danger-zone {
   border-color: rgba(255, 107, 107, 0.35);
+}
+
+/* ---------- 캘린더 + 사이드 패널 레이아웃 ---------- */
+.calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 20px;
+  align-items: start;
+}
+
+.side-panel {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.panel-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 6px 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.panel-back {
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.panel-back:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.panel-close {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.panel-close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* 선택 전 안내 (게임 타이틀 화면 느낌) */
+.intro-hero {
+  padding: 36px 24px 28px;
+  background: radial-gradient(120% 90% at 50% 0%, var(--accent-soft), transparent 70%);
+  text-align: center;
+}
+
+.intro-icon {
+  display: block;
+  margin: 0 auto 14px;
+  color: var(--accent);
+}
+
+.press-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.press-start-caret {
+  color: var(--accent);
+  font-size: 13px;
+  animation: blink 1.1s steps(1, end) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press-start-caret {
+    animation: none;
+  }
+}
+
+.intro-copy {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.intro-ranking {
+  padding: 4px 16px 16px;
+}
+
+.intro-ranking h3 {
+  margin: 0 0 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+}
+
+.ranking-item:hover {
+  background: var(--surface-2);
+}
+
+.rank {
+  flex: none;
+  width: 18px;
+  color: var(--text-dim);
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.rank.top {
+  color: var(--accent);
+}
+
+.ranking-thumb {
+  flex: none;
+  width: 56px;
+  height: 34px;
+  border-radius: 5px;
+  object-fit: cover;
+  font-size: 14px;
+}
+
+/* 패널에 열려 있는 게임·날짜 강조 */
+.game-chip.selected {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.cal-cell.selected {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* 사이드 패널을 둘 공간이 없으면 캘린더만 보여주고, 선택했을 때 패널을 전체 화면으로 연다 */
+@media (max-width: 1024px) {
+  .calendar-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .side-panel {
+    display: none;
+  }
+
+  .side-panel.is-open {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: block;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  /* 전체 화면일 때 내용이 너무 넓어지거나 이미지가 화면을 다 차지하지 않게 */
+  .side-panel.is-open > :not(.panel-bar) {
+    max-width: 640px;
+    margin-inline: auto;
+  }
+
+  .side-panel.is-open .detail-hero {
+    max-height: 40vh;
+  }
 }
 
 /* ---------- 모바일: 칸 안 목록 대신 개수 뱃지, 날짜를 눌러 목록 확인 ---------- */

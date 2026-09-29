@@ -8,6 +8,7 @@
 - 날짜별 출시 게임 표시 (인기순, 한 칸에 최대 3개 + "더보기")
 - 날짜 클릭 → 그날 출시되는 전체 게임 목록
 - 게임 클릭 → 상세 정보 (플랫폼, 장르, 평점, 메타크리틱, RAWG 링크)
+- 메타스코어(PC, Steam에 연결된 메타크리틱 점수) · Steam 사용자 평가(매우 긍정적 94% 등) · 스토어 바로가기 (Steam, Epic Games, GOG, PlayStation, Xbox, Nintendo 등)
 - 모바일 화면에서는 날짜별 게임 개수 뱃지로 표시
 - API 키가 없으면 샘플 데이터로 동작
 - 회원가입 · 로그인 · 로그아웃 (이메일 + 비밀번호)
@@ -62,6 +63,7 @@ backend/                          Node.js + Express + SQLite(node:sqlite)
 | 메서드 | 경로 | 설명 |
 | --- | --- | --- |
 | GET | `/api/games?start=YYYY-MM-DD&end=YYYY-MM-DD` | 기간(최대 62일) 내 출시 게임 목록. `{ games, sample }` |
+| GET | `/api/games/:id/store-info` | 스토어 바로가기 링크, Steam 사용자 평가, 메타스코어(PC). `{ stores, steam, metacritic }` (6시간 캐시) |
 | GET | `/api/health` | 서버 상태. `{ ok, sample }` |
 | POST | `/api/auth/signup` | 회원가입 후 로그인. `{ email, password, nickname }` → `{ user }` |
 | POST | `/api/auth/login` | 로그인. `{ email, password }` → `{ user }` |

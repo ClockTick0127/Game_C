@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { errorMessage } from '../api/client';
 import * as meApi from '../api/me';
-import { GameDetailModal } from '../components/GameDetailModal';
+import { DDay } from '../components/DDay';
+import { GameDetailModal } from '../components/GameDetail';
 import { GameThumb } from '../components/GameThumb';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
@@ -83,12 +84,6 @@ function ProfileSection({ user }: { user: User }) {
       </dl>
     </section>
   );
-}
-
-function DDay({ released }: { released: string }) {
-  const days = daysUntil(released);
-  if (days < 0) return null;
-  return <span className={days <= 7 ? 'dday soon' : 'dday'}>{days === 0 ? 'D-DAY' : `D-${days}`}</span>;
 }
 
 function FavoritesSection() {

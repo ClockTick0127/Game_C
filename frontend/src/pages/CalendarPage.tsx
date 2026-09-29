@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { CalendarGrid } from '../components/CalendarGrid';
 import { CalendarHeader } from '../components/CalendarHeader';
-import { DayGamesModal } from '../components/DayGamesModal';
-import { GameDetailModal } from '../components/GameDetailModal';
+import { SidePanel } from '../components/SidePanel';
 import { useMonthlyReleases } from '../hooks/useMonthlyReleases';
 import type { Game } from '../types';
 
@@ -15,63 +14,88 @@ export function CalendarPage() {
   const [{ year, month }, setCursor] = useState(currentMonth);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
-  const { gamesByDate, totalCount, isSample, loading, error, reload } = useMonthlyReleases(year, month);
+  const { games, gamesByDate, totalCount, isSample, loading, error, reload } = useMonthlyReleases(year, month);
+
+  const changeMonth = (next: { year: number; month: number }) => {
+    setCursor(next);
+    // 날짜 목록은 그 달에만 의미가 있으므로 닫는다. 보고 있던 게임 정보는 그대로 둔다.
+    setSelectedDay(null);
+  };
 
   const moveMonth = (delta: number) => {
     // Date가 월 넘김(12월 → 다음 해 1월)을 알아서 처리한다
     const d = new Date(year, month + delta, 1);
-    setCursor({ year: d.getFullYear(), month: d.getMonth() });
+    changeMonth({ year: d.getFullYear(), month: d.getMonth() });
   };
 
+  /** 캘린더에서 게임을 바로 누른 경우 — 날짜 목록을 거치지 않았으므로 "목록으로" 버튼이 없다 */
+  const selectGameFromCalendar = (game: Game) => {
+    setSelectedDay(null);
+    setSelectedGame(game);
+  };
+
+  const selectDay = (dateKey: string) => {
+    setSelectedGame(null);
+    setSelectedDay(dateKey);
+  };
+
+  const closePanel = useCallback(() => {
+    setSelectedGame(null);
+    setSelectedDay(null);
+  }, []);
+
   return (
-    <>
-      {isSample && (
-        <div className="banner">
-          샘플 데이터로 표시 중입니다. <code>backend/.env</code>에 <code>RAWG_API_KEY</code>를 설정하고 서버를 다시
-          시작하면 실제 출시 정보를 불러옵니다.
-        </div>
-      )}
+    <div className="calendar-layout">
+      <section className="calendar-main">
+        {isSample && (
+          <div className="banner">
+            샘플 데이터로 표시 중입니다. <code>backend/.env</code>에 <code>RAWG_API_KEY</code>를 설정하고 서버를 다시
+            시작하면 실제 출시 정보를 불러옵니다.
+          </div>
+        )}
 
-      <CalendarHeader
-        year={year}
-        month={month}
-        totalCount={totalCount}
-        loading={loading}
-        onPrev={() => moveMonth(-1)}
-        onNext={() => moveMonth(1)}
-        onToday={() => setCursor(currentMonth())}
-      />
-
-      {error && (
-        <div className="banner error">
-          출시 정보를 불러오지 못했습니다: {error}
-          <button type="button" onClick={reload}>
-            다시 시도
-          </button>
-        </div>
-      )}
-
-      <div className={loading ? 'cal-body is-loading' : 'cal-body'}>
-        <CalendarGrid
+        <CalendarHeader
           year={year}
           month={month}
-          gamesByDate={gamesByDate}
-          onSelectGame={setSelectedGame}
-          onSelectDay={setSelectedDay}
+          totalCount={totalCount}
+          loading={loading}
+          onPrev={() => moveMonth(-1)}
+          onNext={() => moveMonth(1)}
+          onToday={() => changeMonth(currentMonth())}
         />
-      </div>
 
-      {/* 상세 모달을 닫으면 열려 있던 날짜 목록으로 돌아간다 */}
-      {selectedGame ? (
-        <GameDetailModal game={selectedGame} onClose={() => setSelectedGame(null)} />
-      ) : selectedDay ? (
-        <DayGamesModal
-          dateKey={selectedDay}
-          games={gamesByDate.get(selectedDay) ?? []}
-          onSelectGame={setSelectedGame}
-          onClose={() => setSelectedDay(null)}
-        />
-      ) : null}
-    </>
+        {error && (
+          <div className="banner error">
+            출시 정보를 불러오지 못했습니다: {error}
+            <button type="button" onClick={reload}>
+              다시 시도
+            </button>
+          </div>
+        )}
+
+        <div className={loading ? 'cal-body is-loading' : 'cal-body'}>
+          <CalendarGrid
+            year={year}
+            month={month}
+            gamesByDate={gamesByDate}
+            selectedGameId={selectedGame?.id ?? null}
+            selectedDay={selectedDay}
+            onSelectGame={selectGameFromCalendar}
+            onSelectDay={selectDay}
+          />
+        </div>
+      </section>
+
+      <SidePanel
+        game={selectedGame}
+        dayKey={selectedDay}
+        dayGames={selectedDay ? (gamesByDate.get(selectedDay) ?? []) : []}
+        month={month}
+        popularGames={games}
+        onSelectGame={setSelectedGame}
+        onBack={() => setSelectedGame(null)}
+        onClose={closePanel}
+      />
+    </div>
   );
 }

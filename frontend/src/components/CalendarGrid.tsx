@@ -10,11 +10,22 @@ interface Props {
   year: number;
   month: number;
   gamesByDate: Map<string, Game[]>;
+  /** 패널에 열려 있는 게임·날짜 (강조 표시용) */
+  selectedGameId: number | null;
+  selectedDay: string | null;
   onSelectGame: (game: Game) => void;
   onSelectDay: (dateKey: string) => void;
 }
 
-export function CalendarGrid({ year, month, gamesByDate, onSelectGame, onSelectDay }: Props) {
+export function CalendarGrid({
+  year,
+  month,
+  gamesByDate,
+  selectedGameId,
+  selectedDay,
+  onSelectGame,
+  onSelectDay,
+}: Props) {
   const { isFavorite } = useFavorites();
   const days = buildCalendarDays(year, month);
   const todayKey = toDateKey(new Date());
@@ -36,6 +47,7 @@ export function CalendarGrid({ year, month, gamesByDate, onSelectGame, onSelectD
           !day.inMonth && 'outside',
           day.key === todayKey && 'today',
           games.length > 0 && 'has-games',
+          day.key === selectedDay && 'selected',
         ]
           .filter(Boolean)
           .join(' ');
@@ -58,9 +70,16 @@ export function CalendarGrid({ year, month, gamesByDate, onSelectGame, onSelectD
                 <li key={game.id}>
                   <button
                     type="button"
-                    className={isFavorite(game.id) ? 'game-chip favorite' : 'game-chip'}
+                    className={[
+                      'game-chip',
+                      isFavorite(game.id) && 'favorite',
+                      game.id === selectedGameId && 'selected',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
                     onClick={() => onSelectGame(game)}
                     title={game.name}
+                    aria-pressed={game.id === selectedGameId}
                   >
                     <GameThumb game={game} className="chip-thumb" />
                     <span className="chip-name">{game.name}</span>

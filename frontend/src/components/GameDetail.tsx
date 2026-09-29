@@ -8,11 +8,7 @@ import { formatKoreanDate } from '../utils/calendar';
 import { loginPath } from '../utils/redirect';
 import { GameThumb } from './GameThumb';
 import { Modal } from './Modal';
-
-interface Props {
-  game: Game;
-  onClose: () => void;
-}
+import { StoreSection } from './StoreSection';
 
 function FavoriteButton({ game }: { game: Game }) {
   const { user } = useAuth();
@@ -56,28 +52,33 @@ function FavoriteButton({ game }: { game: Game }) {
   );
 }
 
-export function GameDetailModal({ game, onClose }: Props) {
+/** 게임 상세 내용. 캘린더의 사이드 패널과 마이페이지의 모달에서 함께 쓴다. */
+export function GameDetail({ game }: { game: Game }) {
   return (
-    <Modal title={game.name} onClose={onClose}>
+    <>
       <GameThumb game={game} className="detail-hero" />
-      <div className="modal-body">
-        <h2 className="modal-title">{game.name}</h2>
-        <p className="modal-sub">출시일 {formatKoreanDate(game.released)}</p>
+      <div className="detail-body">
+        <h2 className="detail-title">{game.name}</h2>
+        <p className="detail-sub">출시일 {formatKoreanDate(game.released)}</p>
 
         <dl className="detail-meta">
           <dt>플랫폼</dt>
           <dd>{game.platforms.length ? game.platforms.join(', ') : '정보 없음'}</dd>
           <dt>장르</dt>
           <dd>{game.genres.length ? game.genres.join(', ') : '정보 없음'}</dd>
-          <dt>평점</dt>
+          <dt>RAWG 평점</dt>
           <dd>{game.rating > 0 ? `★ ${game.rating.toFixed(1)} / 5` : '아직 없음'}</dd>
-          {game.metacritic !== null && (
-            <>
-              <dt>메타크리틱</dt>
-              <dd>{game.metacritic}</dd>
-            </>
-          )}
         </dl>
+
+        {/* 샘플 게임(url 없음)은 RAWG에 없는 가상의 게임이라 스토어 정보가 없다 */}
+        {game.url && (
+          <StoreSection
+            key={game.id}
+            gameId={game.id}
+            onPc={game.platforms.includes('PC')}
+            rawgMetacritic={game.metacritic}
+          />
+        )}
 
         <div className="detail-actions">
           <FavoriteButton game={game} />
@@ -88,6 +89,14 @@ export function GameDetailModal({ game, onClose }: Props) {
           )}
         </div>
       </div>
+    </>
+  );
+}
+
+export function GameDetailModal({ game, onClose }: { game: Game; onClose: () => void }) {
+  return (
+    <Modal title={game.name} onClose={onClose}>
+      <GameDetail game={game} />
     </Modal>
   );
 }
