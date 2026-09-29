@@ -1,0 +1,22 @@
+{
+  "name": "game-calendar",
+  "private": true,
+  "version": "0.1.0",
+  "description": "게임 출시 일정을 캘린더로 보여주는 웹사이트",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n back,front -c blue,magenta \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "build": "npm run build -w frontend",
+    "typecheck": "npm run typecheck --workspaces"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ClockTick0127/Test_PJT1.git"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
