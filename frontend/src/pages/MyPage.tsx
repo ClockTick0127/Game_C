@@ -7,10 +7,12 @@ import { GameDetailModal } from '../components/GameDetail';
 import { GameThumb } from '../components/GameThumb';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import type { Game, User } from '../types';
 import { daysUntil, formatKoreanDate } from '../utils/calendar';
 
 export function MyPage() {
+  useDocumentTitle('마이페이지');
   const { user } = useAuth();
   if (!user) return null; // RequireAuth가 보장하지만 타입을 좁히기 위해
 
@@ -88,7 +90,7 @@ function ProfileSection({ user }: { user: User }) {
 }
 
 function FavoritesSection() {
-  const { favorites, loading, toggle } = useFavorites();
+  const { favorites, loading, error, reload, toggle } = useFavorites();
   const [selected, setSelected] = useState<Game | null>(null);
 
   const upcoming = favorites.filter((g) => daysUntil(g.released) >= 0);
@@ -132,6 +134,13 @@ function FavoritesSection() {
 
       {loading ? (
         <p className="muted">불러오는 중…</p>
+      ) : error ? (
+        <div className="banner error">
+          관심 게임을 불러오지 못했습니다: {error}
+          <button type="button" onClick={reload}>
+            다시 시도
+          </button>
+        </div>
       ) : favorites.length === 0 ? (
         <p className="muted">
           아직 관심 게임이 없습니다. <Link to="/">캘린더</Link>에서 게임을 눌러 ☆ 버튼으로 추가해 보세요.

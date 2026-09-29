@@ -51,8 +51,11 @@ export function CalendarHeader({ year, month, totalCount, loading, onPrev, onNex
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') setOpen(false);
-    else if (e.key === 'Enter') {
+    if (e.key === 'Escape') {
+      // 선택기가 Esc를 처리했다는 표시 — 뒤의 게임 패널이 같은 키로 함께 닫히지 않게 한다
+      e.preventDefault();
+      setOpen(false);
+    } else if (e.key === 'Enter') {
       e.preventDefault();
       apply(monthDraft);
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {

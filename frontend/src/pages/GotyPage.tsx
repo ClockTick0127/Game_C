@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { searchGame } from '../api/games';
 import { GameDetail } from '../components/GameDetail';
 import { GameThumb } from '../components/GameThumb';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import winners from '../data/tgaGoty.json';
 import type { Game } from '../types';
 
@@ -13,6 +14,7 @@ function fallbackGame(w: Winner): Game {
 }
 
 export function GotyPage() {
+  useDocumentTitle('역대 GOTY');
   // 수상작 이름 → RAWG 게임 정보. 아직 불러오는 중이면 키가 없고, 못 찾았으면 null
   const [found, setFound] = useState<Record<string, Game | null>>({});
   // 펼쳐 둔 수상작의 게임 ID. 한 번에 하나만 펼친다.

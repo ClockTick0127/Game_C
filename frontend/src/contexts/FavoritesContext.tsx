@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { errorMessage } from '../api/client';
 import * as meApi from '../api/me';
 import type { Game } from '../types';
 import { useAuth } from './AuthContext';
@@ -7,6 +8,10 @@ interface FavoritesValue {
   /** 출시일 순 정렬 */
   favorites: Game[];
   loading: boolean;
+  /** 목록을 불러오지 못했을 때의 메시지. 성공하면 null */
+  error: string | null;
+  /** 목록을 다시 불러온다 */
+  reload: () => void;
   isFavorite: (gameId: number) => boolean;
   /** 추가/삭제를 뒤집는다. 실패하면 화면을 원래대로 되돌리고 에러를 던진다. */
   toggle: (game: Game) => Promise<void>;
@@ -23,10 +28,13 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const userId = useAuth().user?.id;
   const [favorites, setFavorites] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   // 로그인한 사용자가 바뀔 때마다 목록을 새로 불러온다
   useEffect(() => {
     setFavorites([]);
+    setError(null);
     if (userId === undefined) return;
 
     let cancelled = false;
@@ -34,12 +42,13 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     meApi
       .fetchFavorites()
       .then(({ games }) => !cancelled && setFavorites(games))
-      .catch(() => {}) // 목록을 못 불러와도 캘린더 사용에는 지장이 없다
+      // 캘린더 사용에는 지장이 없으므로 화면을 막지는 않고, 관심 게임 목록을 보여주는 곳에서 안내한다
+      .catch((err: unknown) => !cancelled && setError(errorMessage(err)))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, reloadToken]);
 
   const ids = useMemo(() => new Set(favorites.map((g) => g.id)), [favorites]);
 
@@ -58,7 +67,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <FavoritesContext.Provider value={{ favorites, loading, isFavorite: (id) => ids.has(id), toggle }}>
+    <FavoritesContext.Provider value={{ favorites, loading, error, reload: () => setReloadToken((t) => t + 1), isFavorite: (id) => ids.has(id), toggle }}>
       {children}
     </FavoritesContext.Provider>
   );

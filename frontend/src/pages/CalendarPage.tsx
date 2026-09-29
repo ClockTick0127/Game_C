@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { CalendarGrid } from '../components/CalendarGrid';
 import { CalendarHeader } from '../components/CalendarHeader';
 import { SidePanel } from '../components/SidePanel';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useMonthlyReleases } from '../hooks/useMonthlyReleases';
 import type { Game } from '../types';
 
@@ -11,6 +12,7 @@ function currentMonth() {
 }
 
 export function CalendarPage() {
+  useDocumentTitle();
   const [{ year, month }, setCursor] = useState(currentMonth);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
@@ -46,6 +48,7 @@ export function CalendarPage() {
 
   return (
     <div className="calendar-layout">
+      <h1 className="sr-only">게임 출시 캘린더</h1>
       <section className="calendar-main">
         {isSample && (
           <div className="banner">

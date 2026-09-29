@@ -2,9 +2,11 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { errorMessage } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { safeRedirect, withRedirect } from '../utils/redirect';
 
 export function SignupPage() {
+  useDocumentTitle('회원가입');
   const { user, signup } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

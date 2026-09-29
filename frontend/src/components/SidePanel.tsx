@@ -108,7 +108,8 @@ export function SidePanel({ game, dayKey, dayGames, month, popularGames, onSelec
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    // 월 선택기처럼 안쪽 요소가 이미 Esc를 처리했다면 패널까지 닫지 않는다
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { NavBar } from './components/NavBar';
 import { RequireAuth } from './components/RequireAuth';
 import { AuthProvider } from './contexts/AuthContext';
@@ -19,21 +20,23 @@ export default function App() {
           <div className="app">
             <NavBar />
             <main>
-              <Routes>
-                <Route path="/" element={<CalendarPage />} />
-                <Route path="/goty" element={<GotyPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                <Route
-                  path="/mypage"
-                  element={
-                    <RequireAuth>
-                      <MyPage />
-                    </RequireAuth>
-                  }
-                />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={<CalendarPage />} />
+                  <Route path="/goty" element={<GotyPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
+                  <Route
+                    path="/mypage"
+                    element={
+                      <RequireAuth>
+                        <MyPage />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </ErrorBoundary>
             </main>
             <footer className="footer">
               게임 데이터 제공:{' '}
