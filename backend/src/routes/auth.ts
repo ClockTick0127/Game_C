@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { clearSessionCookie, startSession } from '../middleware/auth.ts';
+import { loginLimiter, signupLimiter } from '../middleware/rateLimit.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
 import { deleteSession } from '../services/sessions.ts';
 import { createUser, findUserRowByEmail, toUser } from '../services/users.ts';
@@ -9,7 +10,7 @@ import { requireText, validateEmail, validateNickname, validatePassword } from '
 export const authRouter = Router();
 
 /** POST /api/auth/signup { email, password, nickname } — 가입 후 바로 로그인 상태가 된다 */
-authRouter.post('/signup', async (req, res) => {
+authRouter.post('/signup', signupLimiter, async (req, res) => {
   const email = validateEmail(req.body?.email);
   const password = validatePassword(req.body?.password);
   const nickname = validateNickname(req.body?.nickname);
@@ -22,7 +23,7 @@ authRouter.post('/signup', async (req, res) => {
 });
 
 /** POST /api/auth/login { email, password } */
-authRouter.post('/login', async (req, res) => {
+authRouter.post('/login', loginLimiter, async (req, res) => {
   const email = requireText(req.body?.email, '이메일과 비밀번호를 입력하세요.').trim();
   const password = requireText(req.body?.password, '이메일과 비밀번호를 입력하세요.');
 

@@ -85,3 +85,14 @@ backend/                          Node.js + Express + SQLite(node:sqlite)
 - 로그인은 서버 세션 방식입니다. 세션 토큰은 `httpOnly`·`SameSite=Lax` 쿠키에 담기고(7일), DB에는 토큰의 해시만 저장됩니다.
   배포 시 `NODE_ENV=production`으로 실행하면 쿠키에 `Secure`가 붙습니다(HTTPS 필요).
 - 아직 없는 것: 로그인 시도 횟수 제한(무차별 대입 방지), 이메일 인증, 비밀번호 찾기.
+
+## 프로덕션 실행
+
+```bash
+npm run build                                   # frontend/dist 생성
+NODE_ENV=production npm start -w backend        # Windows PowerShell: $env:NODE_ENV="production"; npm start -w backend
+```
+
+`frontend/dist`가 있으면 백엔드(기본 4000 포트)가 화면과 API를 함께 서빙합니다.
+nginx 등 리버스 프록시 뒤에서 실행한다면 `TRUST_PROXY=1`을 설정해야 클라이언트 IP(요청 제한)가 올바르게 잡힙니다.
+요청 제한: 로그인 15분당 10회(실패 기준), 가입 1시간당 10회, 비밀번호 변경·탈퇴 15분당 10회, API 전체 분당 300회.

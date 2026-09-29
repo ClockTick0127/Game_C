@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { clearSessionCookie, currentUser, requireAuth } from '../middleware/auth.ts';
+import { sensitiveLimiter } from '../middleware/rateLimit.ts';
 import { addFavorite, listFavorites, removeFavorite } from '../services/favorites.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
 import { deleteOtherSessions } from '../services/sessions.ts';
@@ -32,7 +33,7 @@ meRouter.patch('/', (req, res) => {
 });
 
 /** PUT /api/me/password { currentPassword, newPassword } — 다른 기기의 로그인은 해제된다 */
-meRouter.put('/password', async (req, res) => {
+meRouter.put('/password', sensitiveLimiter, async (req, res) => {
   const user = currentUser(req);
   await assertPassword(user.id, req.body?.currentPassword);
   const newPassword = validatePassword(req.body?.newPassword, '새 비밀번호');
@@ -43,7 +44,7 @@ meRouter.put('/password', async (req, res) => {
 });
 
 /** DELETE /api/me { password } — 회원 탈퇴 */
-meRouter.delete('/', async (req, res) => {
+meRouter.delete('/', sensitiveLimiter, async (req, res) => {
   const user = currentUser(req);
   await assertPassword(user.id, req.body?.password);
 
