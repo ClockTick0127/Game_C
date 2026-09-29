@@ -2,6 +2,7 @@
   --bg: #0f1117;
   --surface: #181b24;
   --surface-2: #212532;
+  --surface-3: #272c3b;
   --border: #2a2f3d;
   --text: #e8eaf0;
   --text-dim: #8b91a3;
@@ -10,10 +11,87 @@
   --sun: #ff6b6b;
   --sat: #5ca8ff;
   --error: #ff6b6b;
+  --error-soft: rgba(255, 107, 107, 0.14);
+  --error-line: rgba(255, 107, 107, 0.35);
+  --success: #4ade80;
+  --tint: rgba(255, 255, 255, 0.08);
+  --skeleton: #2a2f3e;
+  --shadow-pop: rgba(0, 0, 0, 0.45);
+  --star: #facc15;
+  --star-soft: rgba(250, 204, 21, 0.15);
+  --star-ring: rgba(250, 204, 21, 0.5);
+  --gold: #ffc857;
+  --steam-positive: #66c0f4;
+  --steam-mixed: #c9a45c;
+  --steam-negative: #e2735a;
+  --store-epic: #f5f5f5;
   --radius: 10px;
 
   color-scheme: dark;
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+}
+
+/* 라이트 테마: 직접 고른 경우와, 고르지 않았을 때 브라우저·OS 설정이 라이트인 경우. 값은 두 곳이 같아야 한다. */
+:root[data-theme='light'] {
+  --bg: #f4f5f9;
+  --surface: #ffffff;
+  --surface-2: #eceef5;
+  --surface-3: #e2e5ef;
+  --border: #d8dbe6;
+  --text: #1b1f2a;
+  --text-dim: #5d6478;
+  --accent: #6a4cf0;
+  --accent-soft: rgba(106, 76, 240, 0.12);
+  --sun: #d92d2d;
+  --sat: #1d6fd6;
+  --error: #d92d2d;
+  --error-soft: rgba(217, 45, 45, 0.1);
+  --error-line: rgba(217, 45, 45, 0.4);
+  --success: #15803d;
+  --tint: rgba(0, 0, 0, 0.07);
+  --skeleton: #dfe2ec;
+  --shadow-pop: rgba(20, 24, 40, 0.18);
+  --star: #b7791f;
+  --star-soft: rgba(183, 121, 31, 0.14);
+  --star-ring: rgba(183, 121, 31, 0.55);
+  --gold: #b7791f;
+  --steam-positive: #1a7fb5;
+  --steam-mixed: #96731f;
+  --steam-negative: #c2452b;
+  --store-epic: #2b2b2b;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #f4f5f9;
+    --surface: #ffffff;
+    --surface-2: #eceef5;
+    --surface-3: #e2e5ef;
+    --border: #d8dbe6;
+    --text: #1b1f2a;
+    --text-dim: #5d6478;
+    --accent: #6a4cf0;
+    --accent-soft: rgba(106, 76, 240, 0.12);
+    --sun: #d92d2d;
+    --sat: #1d6fd6;
+    --error: #d92d2d;
+    --error-soft: rgba(217, 45, 45, 0.1);
+    --error-line: rgba(217, 45, 45, 0.4);
+    --success: #15803d;
+    --tint: rgba(0, 0, 0, 0.07);
+    --skeleton: #dfe2ec;
+    --shadow-pop: rgba(20, 24, 40, 0.18);
+    --star: #b7791f;
+    --star-soft: rgba(183, 121, 31, 0.14);
+    --star-ring: rgba(183, 121, 31, 0.55);
+    --gold: #b7791f;
+    --steam-positive: #1a7fb5;
+    --steam-mixed: #96731f;
+    --steam-negative: #c2452b;
+    --store-epic: #2b2b2b;
+    color-scheme: light;
+  }
 }
 
 * {
@@ -60,11 +138,11 @@ a {
 .banner code {
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--tint);
 }
 
 .banner.error {
-  background: rgba(255, 107, 107, 0.14);
+  background: var(--error-soft);
   color: var(--error);
 }
 
@@ -137,7 +215,7 @@ a {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 32px var(--shadow-pop);
 }
 
 .cal-popover-year {
@@ -589,84 +667,6 @@ img.detail-hero {
   color: var(--text);
 }
 
-/* ---------- 버튼 ---------- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 40px;
-  padding: 0 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.btn:hover:not(:disabled) {
-  border-color: var(--text-dim);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.btn-sm {
-  height: 30px;
-  padding: 0 10px;
-  font-size: 13px;
-}
-
-.btn-primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-
-.btn-primary:hover:not(:disabled) {
-  border-color: var(--accent);
-  filter: brightness(1.1);
-}
-
-.btn-danger {
-  border-color: var(--error);
-  background: transparent;
-  color: var(--error);
-}
-
-.btn-danger:hover:not(:disabled) {
-  border-color: var(--error);
-  background: rgba(255, 107, 107, 0.12);
-}
-
-/* ---------- 폼 ---------- */
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-}
-
-.field small {
-  color: var(--text-dim);
-  font-size: 12px;
-}
-
-input {
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
 /* ---------- 캘린더 검색·필터 ---------- */
 .cal-filters {
   display: flex;
@@ -723,6 +723,84 @@ input {
   margin: 0 0 12px;
 }
 
+/* ---------- 버튼 ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--text-dim);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.btn-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  border-color: var(--accent);
+  filter: brightness(1.1);
+}
+
+.btn-danger {
+  border-color: var(--error);
+  background: transparent;
+  color: var(--error);
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--error);
+  background: var(--error-soft);
+}
+
+/* ---------- 폼 ---------- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.field small {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
   background: var(--bg);
   color: var(--text);
   font: inherit;
@@ -745,7 +823,7 @@ input:focus {
 }
 
 .form-success {
-  color: #4ade80;
+  color: var(--success);
 }
 
 .inline-form {
@@ -759,6 +837,10 @@ input:focus {
   flex: 1;
   min-width: 160px;
   max-width: 280px;
+}
+
+.inline-form input.subscribe-url {
+  max-width: none;
 }
 
 /* ---------- 로그인 · 회원가입 ---------- */
@@ -822,7 +904,7 @@ input:focus {
 }
 
 .steam-rating:hover {
-  background: #272c3b;
+  background: var(--surface-3);
 }
 
 .steam-line {
@@ -845,7 +927,7 @@ input:focus {
   height: 4px;
   overflow: hidden;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--tint);
 }
 
 .steam-bar-fill {
@@ -856,22 +938,22 @@ input:focus {
 
 /* Steam 스토어의 평가 색 */
 .steam-label.positive {
-  color: #66c0f4;
+  color: var(--steam-positive);
 }
 .steam-label.mixed {
-  color: #c9a45c;
+  color: var(--steam-mixed);
 }
 .steam-label.negative {
-  color: #e2735a;
+  color: var(--steam-negative);
 }
 .steam-bar-fill.positive {
-  background: #66c0f4;
+  background: var(--steam-positive);
 }
 .steam-bar-fill.mixed {
-  background: #c9a45c;
+  background: var(--steam-mixed);
 }
 .steam-bar-fill.negative {
-  background: #e2735a;
+  background: var(--steam-negative);
 }
 
 .metascore {
@@ -886,7 +968,7 @@ input:focus {
 }
 
 a.metascore:hover {
-  background: #272c3b;
+  background: var(--surface-3);
 }
 
 /* 메타크리틱의 점수 상자 */
@@ -895,10 +977,6 @@ a.metascore:hover {
   flex: none;
   align-items: center;
   justify-content: center;
-.inline-form input.subscribe-url {
-  max-width: none;
-}
-
   width: 44px;
   height: 44px;
   border-radius: 8px;
@@ -987,7 +1065,7 @@ a.metascore:hover {
   --store-color: #66c0f4;
 }
 .store-epic-games {
-  --store-color: #f5f5f5;
+  --store-color: var(--store-epic);
 }
 .store-gog {
   --store-color: #b565f0;
@@ -1011,7 +1089,7 @@ a.metascore:hover {
 .skeleton {
   display: block;
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--surface-2) 25%, #2a2f3e 50%, var(--surface-2) 75%);
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--skeleton) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.2s ease-in-out infinite;
 }
@@ -1054,19 +1132,19 @@ a.metascore:hover {
 }
 
 .fav-btn.active {
-  border-color: #facc15;
-  color: #facc15;
+  border-color: var(--star);
+  color: var(--star);
 }
 
 .game-chip.favorite {
-  box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.5);
+  box-shadow: inset 0 0 0 1px var(--star-ring);
 }
 
 .chip-star {
   flex: none;
   margin-left: auto;
   padding-right: 2px;
-  color: #facc15;
+  color: var(--star);
   font-size: 11px;
 }
 
@@ -1207,12 +1285,12 @@ a.metascore:hover {
 }
 
 .dday.soon {
-  background: rgba(250, 204, 21, 0.15);
-  color: #facc15;
+  background: var(--star-soft);
+  color: var(--star);
 }
 
 .danger-zone {
-  border-color: rgba(255, 107, 107, 0.35);
+  border-color: var(--error-line);
 }
 
 /* ---------- 캘린더 + 사이드 패널 레이아웃 ---------- */
@@ -1572,7 +1650,7 @@ a.metascore:hover {
 }
 
 .goty-badge {
-  color: #ffc857;
+  color: var(--gold);
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
