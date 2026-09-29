@@ -21,7 +21,8 @@ export const requestLogger: RequestHandler = (req, res, next) => {
   req.id = incoming && ID_PATTERN.test(incoming) ? incoming : randomUUID();
   res.setHeader('X-Request-Id', req.id);
 
-  const path = req.originalUrl.split('?')[0]!;
+  // 캘린더 구독 주소의 토큰은 비밀번호와 같으므로 로그에 남기지 않는다
+  const path = req.originalUrl.split('?')[0]!.replace(/^(\/api\/calendar\/)[^/]+/, '$1:token');
   if (LOG_REQUESTS && path.startsWith('/api/') && !QUIET_PATHS.has(path)) {
     const startedAt = process.hrtime.bigint();
     res.on('finish', () => {

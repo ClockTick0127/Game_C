@@ -24,3 +24,11 @@ export function addFavorite(game: Game): Promise<void> {
 export function removeFavorite(gameId: number): Promise<void> {
   return request(`/api/me/favorites/${gameId}`, { method: 'DELETE' });
 }
+
+export function fetchCalendarToken(): Promise<{ token: string }> {
+  return request('/api/me/calendar-token');
+}
+
+export function resetCalendarToken(): Promise<{ token: string }> {
+  return request('/api/me/calendar-token', { method: 'POST' });
+}

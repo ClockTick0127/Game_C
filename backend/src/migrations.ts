@@ -51,6 +51,16 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
     `,
   },
+  {
+    version: 3,
+    description: '캘린더 구독(ICS) 주소용 토큰',
+    // 구독 주소는 로그인 없이 열려야 해서(캘린더 앱은 쿠키가 없다) 추측할 수 없는 토큰 자체가 열쇠다.
+    // 설정 화면에 주소를 다시 보여줘야 하므로 세션과 달리 원문을 저장한다.
+    sql: `
+      ALTER TABLE users ADD COLUMN calendar_token TEXT;
+      CREATE UNIQUE INDEX idx_users_calendar_token ON users(calendar_token);
+    `,
+  },
 ];
 
 function currentVersion(db: DatabaseSync): number {

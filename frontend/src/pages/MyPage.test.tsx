@@ -67,6 +67,47 @@ describe('마이페이지 — 관심 게임', () => {
   });
 });
 
+describe('마이페이지 — 캘린더 구독', () => {
+  it('처음에는 주소를 숨기고, 버튼을 누르면 토큰이 든 구독 주소를 보여준다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchCalendarToken).mockResolvedValue({ token: 'abc123' });
+    renderMyPage();
+
+    expect(screen.queryByLabelText('캘린더 구독 주소')).not.toBeInTheDocument();
+    expect(meApi.fetchCalendarToken).not.toHaveBeenCalled();
+
+    await user.click(await screen.findByRole('button', { name: '구독 주소 보기' }));
+    const input = await screen.findByLabelText('캘린더 구독 주소');
+    expect(input).toHaveValue(`${window.location.origin}/api/calendar/abc123.ics`);
+  });
+
+  it('주소를 다시 만들려면 확인 창을 거치고, 새 주소로 바뀐다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchCalendarToken).mockResolvedValue({ token: 'old' });
+    vi.mocked(meApi.resetCalendarToken).mockResolvedValue({ token: 'new' });
+    renderMyPage();
+
+    await user.click(await screen.findByRole('button', { name: '구독 주소 보기' }));
+    await user.click(await screen.findByRole('button', { name: '주소 다시 만들기' }));
+    expect(meApi.resetCalendarToken).not.toHaveBeenCalled();
+
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: '다시 만들기' }));
+    await waitFor(() =>
+      expect(screen.getByLabelText('캘린더 구독 주소')).toHaveValue(`${window.location.origin}/api/calendar/new.ics`),
+    );
+  });
+
+  it('주소를 만들지 못하면 오류를 보여준다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchCalendarToken).mockRejectedValue(new Error('서버 오류'));
+    renderMyPage();
+
+    await user.click(await screen.findByRole('button', { name: '구독 주소 보기' }));
+    expect(await screen.findByText('서버 오류')).toBeInTheDocument();
+  });
+});
+
 describe('마이페이지 — 회원 탈퇴', () => {
   async function submitPassword() {
     const user = userEvent.setup();

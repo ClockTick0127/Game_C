@@ -23,6 +23,7 @@ export function MyPage() {
       <h1 className="page-title">마이페이지</h1>
       <ProfileSection user={user} />
       <FavoritesSection />
+      <CalendarSubscribeSection />
       <PasswordSection />
       <SessionSection />
       <DeleteAccountSection />
@@ -180,6 +181,88 @@ function FavoritesSection() {
       )}
 
       {selected && <GameDetailModal game={selected} onClose={() => setSelected(null)} />}
+    </section>
+  );
+}
+
+function CalendarSubscribeSection() {
+  const [token, setToken] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 구독 주소는 로그인 없이 열리는 비밀 주소라, 필요할 때 눌러서 만들고 보여준다
+  const run = async (action: () => Promise<{ token: string }>) => {
+    setBusy(true);
+    setError(null);
+    setCopied(false);
+    try {
+      setToken((await action()).token);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+      setConfirmingReset(false);
+    }
+  };
+
+  const url = token ? `${window.location.origin}/api/calendar/${token}.ics` : '';
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+    } catch {
+      setError('복사하지 못했습니다. 주소를 직접 선택해서 복사해 주세요.');
+    }
+  };
+
+  return (
+    <section className="card">
+      <h2>캘린더 구독</h2>
+      <p className="muted">
+        관심 게임의 출시일을 구글 캘린더 · 애플 캘린더 · 아웃룩에서 함께 볼 수 있습니다. 관심 게임을 추가하거나 빼면
+        구독한 캘린더에도 자동으로 반영됩니다.
+      </p>
+      {token ? (
+        <>
+          <div className="inline-form">
+            <input
+              className="subscribe-url"
+              value={url}
+              readOnly
+              aria-label="캘린더 구독 주소"
+              onFocus={(e) => e.target.select()}
+            />
+            <button type="button" className="btn btn-primary btn-sm" onClick={handleCopy}>
+              {copied ? '복사됨' : '복사'}
+            </button>
+          </div>
+          <p className="muted">
+            캘린더 앱의 &quot;URL로 캘린더 추가(구독)&quot;에 붙여넣으세요. 이 주소를 아는 사람은 누구나 관심 게임
+            목록을 볼 수 있으니 공유하지 마세요. 외부에서 접속 가능한 서버 주소여야 구글 캘린더가 가져올 수 있습니다.
+          </p>
+          <button type="button" className="btn btn-sm" onClick={() => setConfirmingReset(true)} disabled={busy}>
+            주소 다시 만들기
+          </button>
+        </>
+      ) : (
+        <button type="button" className="btn" onClick={() => run(meApi.fetchCalendarToken)} disabled={busy}>
+          {busy ? '만드는 중…' : '구독 주소 보기'}
+        </button>
+      )}
+      {error && <p className="form-error">{error}</p>}
+      {confirmingReset && (
+        <ConfirmDialog
+          title="구독 주소 다시 만들기"
+          message="새 주소를 만들면 지금 쓰는 주소는 더 이상 동작하지 않습니다. 이미 구독 중인 캘린더는 새 주소로 다시 구독해야 합니다."
+          confirmLabel="다시 만들기"
+          busy={busy}
+          onConfirm={() => run(meApi.resetCalendarToken)}
+          onCancel={() => setConfirmingReset(false)}
+        />
+      )}
     </section>
   );
 }

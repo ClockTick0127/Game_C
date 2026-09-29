@@ -13,6 +13,7 @@
 - API 키가 없으면 샘플 데이터로 동작
 - 회원가입 · 로그인 · 로그아웃 (이메일 + 비밀번호)
 - 관심 게임 추가/삭제 (게임 상세의 ☆ 버튼, 캘린더에 ★ 표시)
+- 캘린더 구독: 관심 게임 출시일을 구글·애플 캘린더 등에서 볼 수 있는 구독 주소(.ics) 제공 (마이페이지)
 - 마이페이지: 프로필(닉네임 수정), 관심 게임 목록(출시 예정 D-day / 출시됨), 비밀번호 변경, 모든 기기에서 로그아웃, 회원 탈퇴
 
 ## 시작하기
@@ -75,6 +76,9 @@ backend/                          Node.js + Express + SQLite(node:sqlite)
 | GET | `/api/me/favorites` 🔒 | 관심 게임 목록 (출시일 순). `{ games }` |
 | PUT | `/api/me/favorites/:gameId` 🔒 | 관심 게임 추가 (본문: Game) |
 | DELETE | `/api/me/favorites/:gameId` 🔒 | 관심 게임 삭제 |
+| GET | `/api/me/calendar-token` 🔒 | 캘린더 구독 주소용 토큰 (없으면 생성). `{ token }` |
+| POST | `/api/me/calendar-token` 🔒 | 토큰 재발급 (기존 구독 주소 무효화). `{ token }` |
+| GET | `/api/calendar/:token.ics` | 관심 게임 캘린더(iCalendar). 로그인 불필요, 토큰이 곧 열쇠 |
 
 🔒 로그인 필요 (없으면 401). 실패 시 `{ error: "사유" }`와 함께 400 / 401 / 409(이메일 중복) / 502·504(RAWG 오류) 등을 반환합니다.
 

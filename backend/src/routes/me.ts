@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { clearSessionCookie, currentUser, requireAuth } from '../middleware/auth.ts';
+import { getOrCreateCalendarToken, resetCalendarToken } from '../services/calendarFeed.ts';
 import { sensitiveLimiter } from '../middleware/rateLimit.ts';
 import { addFavorite, listFavorites, removeFavorite } from '../services/favorites.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
@@ -72,4 +73,14 @@ meRouter.put('/favorites/:gameId', (req, res) => {
 meRouter.delete('/favorites/:gameId', (req, res) => {
   removeFavorite(currentUser(req).id, parseGameId(req.params.gameId));
   res.status(204).end();
+});
+
+/** GET /api/me/calendar-token — 캘린더 구독 주소에 들어가는 토큰. 처음 요청하면 만든다. */
+meRouter.get('/calendar-token', (req, res) => {
+  res.json({ token: getOrCreateCalendarToken(currentUser(req).id) });
+});
+
+/** POST /api/me/calendar-token — 토큰을 새로 만든다. 유출된 옛 구독 주소는 더 이상 동작하지 않는다. */
+meRouter.post('/calendar-token', (req, res) => {
+  res.json({ token: resetCalendarToken(currentUser(req).id) });
 });

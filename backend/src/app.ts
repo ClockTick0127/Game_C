@@ -8,6 +8,7 @@ import { checkOrigin } from './middleware/origin.ts';
 import { apiLimiter } from './middleware/rateLimit.ts';
 import { requestLogger } from './middleware/requestLog.ts';
 import { authRouter } from './routes/auth.ts';
+import { calendarRouter } from './routes/calendar.ts';
 import { gamesRouter } from './routes/games.ts';
 import { meRouter } from './routes/me.ts';
 import { IS_SAMPLE_MODE } from './services/releases.ts';
@@ -44,6 +45,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/games', gamesRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/me', meRouter);
+app.use('/api/calendar', calendarRouter);
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: '존재하지 않는 API입니다.' });
 });

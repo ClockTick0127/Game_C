@@ -839,6 +839,10 @@ a.metascore:hover {
   flex: none;
   align-items: center;
   justify-content: center;
+.inline-form input.subscribe-url {
+  max-width: none;
+}
+
   width: 44px;
   height: 44px;
   border-radius: 8px;

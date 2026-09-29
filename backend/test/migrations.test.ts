@@ -24,7 +24,7 @@ describe('DB 마이그레이션', () => {
     assert.equal(runMigrations(db), migrations.length);
     assert.equal(version(db), migrations.length);
     assert.deepEqual(tables(db), ['favorites', 'sessions', 'users']);
-    assert.deepEqual(indexes(db), ['idx_sessions_expires_at', 'idx_sessions_user_id']);
+    assert.deepEqual(indexes(db), ['idx_sessions_expires_at', 'idx_sessions_user_id', 'idx_users_calendar_token']);
   });
 
   it('다시 실행해도 아무것도 적용하지 않는다', () => {
@@ -67,7 +67,7 @@ describe('DB 마이그레이션', () => {
       nickname: string;
     };
     assert.equal(user.nickname, '기존회원');
-    assert.equal(indexes(db).length, 2);
+    assert.equal(indexes(db).length, 3);
   });
 
   it('중간 단계가 실패하면 그 단계만 되돌리고 이전 버전에 머문다', () => {
