@@ -1,0 +1,24 @@
+version: 2
+updates:
+  # npm 워크스페이스(frontend, backend)는 루트의 package-lock.json 하나로 관리된다
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # 마이너·패치 업데이트는 한 PR로 묶어 PR이 쏟아지지 않게 한다
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # CI 워크플로가 쓰는 액션 (actions/checkout 등)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Dockerfile의 베이스 이미지 (node:24-slim)
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

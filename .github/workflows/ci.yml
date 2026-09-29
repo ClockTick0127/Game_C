@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # 코드가 바뀌지 않아도 새로 공개된 취약점을 알 수 있도록 매주 월요일에 한 번 실행한다
+  schedule:
+    - cron: '0 0 * * 1'
 
 jobs:
   check:
@@ -20,6 +23,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # 운영에 들어가는 의존성만 검사한다 (개발 도구의 취약점은 서비스에 영향이 없다). high 이상이 있으면 실패한다.
+      - run: npm audit --omit=dev --audit-level=high
 
   docker:
     runs-on: ubuntu-latest
