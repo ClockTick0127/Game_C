@@ -34,8 +34,19 @@ export function buildCalendarDays(year: number, month: number): CalendarDay[] {
   });
 }
 
-export function formatKoreanDate(key: string): string {
+function parseDateKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
-  const weekday = WEEKDAYS[new Date(y, m - 1, d).getDay()];
-  return `${y}년 ${m}월 ${d}일 (${weekday})`;
+  return new Date(y, m - 1, d);
+}
+
+export function formatKoreanDate(key: string): string {
+  const date = parseDateKey(key);
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${WEEKDAYS[date.getDay()]})`;
+}
+
+/** 오늘부터 key 날짜까지 남은 일수 (오늘이면 0, 지났으면 음수) */
+export function daysUntil(key: string): number {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((parseDateKey(key).getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
 }

@@ -1,4 +1,5 @@
 import type { Game } from '../types.ts';
+import { HttpError } from '../utils/http.ts';
 
 const BASE_URL = 'https://api.rawg.io/api';
 /** RAWG가 허용하는 최대 페이지 크기 */
@@ -26,13 +27,10 @@ interface RawgListResponse {
 }
 
 /** RAWG 호출 실패. message는 클라이언트에 그대로 보여줄 수 있는 문장이다. */
-export class RawgApiError extends Error {
-  readonly status: number;
-
+export class RawgApiError extends HttpError {
   constructor(message: string, status = 502) {
-    super(message);
+    super(status, message);
     this.name = 'RawgApiError';
-    this.status = status;
   }
 }
 

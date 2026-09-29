@@ -3,3 +3,6 @@ dist
 .env
 .env.local
 *.log
+
+# SQLite DB (계정, 세션, 관심 게임)
+backend/data/

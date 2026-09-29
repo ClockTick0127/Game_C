@@ -13,6 +13,14 @@ export interface Game {
   url: string | null;
 }
 
+export interface User {
+  id: number;
+  email: string;
+  nickname: string;
+  /** 가입 시각 (ISO 8601) */
+  createdAt: string;
+}
+
 export interface ReleasesResponse {
   games: Game[];
   /** true면 백엔드에 API 키가 없어 샘플 데이터로 응답한 것 */

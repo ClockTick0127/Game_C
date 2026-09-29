@@ -1,3 +1,4 @@
+import { useFavorites } from '../contexts/FavoritesContext';
 import type { Game } from '../types';
 import { buildCalendarDays, toDateKey, WEEKDAYS } from '../utils/calendar';
 import { GameThumb } from './GameThumb';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function CalendarGrid({ year, month, gamesByDate, onSelectGame, onSelectDay }: Props) {
+  const { isFavorite } = useFavorites();
   const days = buildCalendarDays(year, month);
   const todayKey = toDateKey(new Date());
 
@@ -54,9 +56,19 @@ export function CalendarGrid({ year, month, gamesByDate, onSelectGame, onSelectD
             <ul className="cal-games">
               {games.slice(0, MAX_VISIBLE).map((game) => (
                 <li key={game.id}>
-                  <button type="button" className="game-chip" onClick={() => onSelectGame(game)} title={game.name}>
+                  <button
+                    type="button"
+                    className={isFavorite(game.id) ? 'game-chip favorite' : 'game-chip'}
+                    onClick={() => onSelectGame(game)}
+                    title={game.name}
+                  >
                     <GameThumb game={game} className="chip-thumb" />
                     <span className="chip-name">{game.name}</span>
+                    {isFavorite(game.id) && (
+                      <span className="chip-star" aria-label="관심 게임">
+                        ★
+                      </span>
+                    )}
                   </button>
                 </li>
               ))}
