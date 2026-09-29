@@ -24,7 +24,7 @@
     "url": "git+https://github.com/ClockTick0127/Test_PJT1.git"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
+    "@eslint/js": "^10.0.1",
     "concurrently": "^10.0.5",
     "eslint": "^9.39.5",
     "eslint-plugin-jsx-a11y": "^6.10.2",
