@@ -21,12 +21,15 @@ const deleteOthers = db.prepare('DELETE FROM sessions WHERE user_id = ? AND toke
 /** 새 세션을 만들고 쿠키에 넣을 토큰 원문을 돌려준다. */
 export function createSession(userId: number): { token: string; expiresAt: number } {
   const now = Date.now();
-  deleteExpired.run(now);
-
   const token = randomBytes(32).toString('base64url');
   const expiresAt = now + SESSION_TTL_MS;
   insertSession.run(hashToken(token), userId, expiresAt);
   return { token, expiresAt };
+}
+
+/** 만료된 세션을 지우고 지운 개수를 돌려준다. (만료 세션은 조회에서 이미 무시되므로 정리는 저장 공간을 위한 것이다) */
+export function purgeExpiredSessions(): number {
+  return Number(deleteExpired.run(Date.now()).changes);
 }
 
 export function findSessionUser(token: string): User | null {

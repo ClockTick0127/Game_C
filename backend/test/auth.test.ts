@@ -190,3 +190,29 @@ describe('공통', () => {
     assert.equal(res.status, 400);
   });
 });
+
+describe('만료 세션 정리', () => {
+  it('만료된 세션만 삭제하고 유효한 세션은 유지한다', async () => {
+    const { purgeExpiredSessions } = await import('../src/services/sessions.ts');
+    purgeExpiredSessions(); // 앞선 테스트가 남긴 만료 세션을 먼저 비운다
+    const alive = t.client();
+    await signup(alive, 'purge-alive@example.com');
+    const gone = t.client();
+    await signup(gone, 'purge-gone@example.com');
+
+    // 두 번째 사용자의 세션만 만료시킨다
+    t.db
+      .prepare('UPDATE sessions SET expires_at = 1 WHERE user_id = (SELECT id FROM users WHERE email = ?)')
+      .run('purge-gone@example.com');
+
+    const before = (t.db.prepare('SELECT COUNT(*) AS c FROM sessions').get() as { c: number }).c;
+    const removed = purgeExpiredSessions();
+    const after = (t.db.prepare('SELECT COUNT(*) AS c FROM sessions').get() as { c: number }).c;
+
+    assert.equal(removed, 1);
+    assert.equal(after, before - 1);
+    assert.equal((await alive.request('GET', '/api/auth/me')).json.user.email, 'purge-alive@example.com');
+    assert.equal((await gone.request('GET', '/api/auth/me')).json.user, null);
+    assert.equal(purgeExpiredSessions(), 0);
+  });
+});
