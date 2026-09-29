@@ -209,3 +209,63 @@ describe('CalendarPage — 게임 정보 패널', () => {
     expect(panel().queryByText('게임 2개')).not.toBeInTheDocument();
   });
 });
+
+describe('CalendarPage — 검색과 필터', () => {
+  const games = () => [
+    game(1, '엘든 링', 5, { platforms: ['PC'], genres: ['RPG'] }),
+    game(2, '포르자', 5, { platforms: ['Xbox'], genres: ['Racing'] }),
+    game(3, '하데스 2', 12, { platforms: ['PC', 'Xbox'], genres: ['Action', 'RPG'] }),
+  ];
+
+  it('제목을 검색하면 일치하는 게임만 캘린더에 남고 결과 수를 알려 준다', async () => {
+    const user = userEvent.setup();
+    await renderCalendar(games());
+
+    await user.type(screen.getByRole('searchbox', { name: '게임 제목 검색' }), '엘든');
+
+    expect(grid().getByRole('button', { name: /엘든 링/ })).toBeInTheDocument();
+    expect(grid().queryByRole('button', { name: /포르자/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('1개 표시 중 (전체 3개)');
+  });
+
+  it('플랫폼과 장르 선택지는 그 달의 게임에서 만들고, 함께 적용하면 둘 다 만족하는 게임만 보인다', async () => {
+    const user = userEvent.setup();
+    await renderCalendar(games());
+
+    await user.selectOptions(screen.getByRole('combobox', { name: '플랫폼' }), 'PC');
+    await user.selectOptions(screen.getByRole('combobox', { name: '장르' }), 'Action');
+
+    expect(grid().getByRole('button', { name: /하데스 2/ })).toBeInTheDocument();
+    expect(grid().queryByRole('button', { name: /엘든 링/ })).not.toBeInTheDocument();
+    expect(grid().queryByRole('button', { name: /포르자/ })).not.toBeInTheDocument();
+  });
+
+  it('맞는 게임이 없으면 안내하고, 초기화하면 모두 돌아온다', async () => {
+    const user = userEvent.setup();
+    await renderCalendar(games());
+
+    await user.type(screen.getByRole('searchbox', { name: '게임 제목 검색' }), '없는 게임');
+    expect(screen.getByText(/조건에 맞는 게임이 이 달에는 없습니다/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '필터 초기화' }));
+    expect(screen.queryByText(/조건에 맞는 게임이/)).not.toBeInTheDocument();
+    expect(grid().getByRole('button', { name: /포르자/ })).toBeInTheDocument();
+  });
+
+  it('로그인하지 않으면 "관심 게임만" 필터를 보여 주지 않는다', async () => {
+    await renderCalendar(games());
+    expect(screen.queryByRole('checkbox', { name: '관심 게임만' })).not.toBeInTheDocument();
+  });
+
+  it('로그인하면 "관심 게임만" 필터로 관심 게임만 볼 수 있다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(authApi.fetchMe).mockResolvedValue({ user: testUser });
+    vi.mocked(meApi.fetchFavorites).mockResolvedValue({ games: [games()[1]!] });
+    await renderCalendar(games());
+
+    await user.click(await screen.findByRole('checkbox', { name: '관심 게임만' }));
+
+    await waitFor(() => expect(grid().queryByRole('button', { name: /엘든 링/ })).not.toBeInTheDocument());
+    expect(grid().getByRole('button', { name: /포르자/ })).toBeInTheDocument();
+  });
+});

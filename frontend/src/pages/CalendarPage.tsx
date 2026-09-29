@@ -1,10 +1,14 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { CalendarFilters } from '../components/CalendarFilters';
 import { CalendarGrid } from '../components/CalendarGrid';
 import { CalendarHeader } from '../components/CalendarHeader';
 import { SidePanel } from '../components/SidePanel';
+import { useAuth } from '../contexts/AuthContext';
+import { useFavorites } from '../contexts/FavoritesContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useMonthlyReleases } from '../hooks/useMonthlyReleases';
 import type { Game } from '../types';
+import { collectOptions, filterGames, groupByDate, NO_FILTER, type GameFilter } from '../utils/filterGames';
 
 function currentMonth() {
   const now = new Date();
@@ -16,7 +20,30 @@ export function CalendarPage() {
   const [{ year, month }, setCursor] = useState(currentMonth);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
-  const { games, gamesByDate, totalCount, isSample, partial, loading, error, reload } = useMonthlyReleases(year, month);
+  const { user } = useAuth();
+  const { isFavorite } = useFavorites();
+  // 필터는 달을 넘겨도 유지한다 ("RPG만 보면서 다음 달로")
+  const [filter, setFilter] = useState<GameFilter>(NO_FILTER);
+  const { games: allGames, totalCount, isSample, partial, loading, error, reload } = useMonthlyReleases(year, month);
+
+  const games = useMemo(() => filterGames(allGames, filter, isFavorite), [allGames, filter, isFavorite]);
+  const gamesByDate = useMemo(() => groupByDate(games), [games]);
+  const platforms = useMemo(
+    () =>
+      collectOptions(
+        allGames.map((g) => g.platforms),
+        filter.platform,
+      ),
+    [allGames, filter.platform],
+  );
+  const genres = useMemo(
+    () =>
+      collectOptions(
+        allGames.map((g) => g.genres),
+        filter.genre,
+      ),
+    [allGames, filter.genre],
+  );
 
   const changeMonth = (next: { year: number; month: number }) => {
     setCursor(next);
@@ -68,6 +95,16 @@ export function CalendarPage() {
           onJump={(y, m) => changeMonth({ year: y, month: m })}
         />
 
+        <CalendarFilters
+          filter={filter}
+          onChange={setFilter}
+          platforms={platforms}
+          genres={genres}
+          canFilterFavorites={user !== null}
+          shownCount={games.length}
+          totalCount={totalCount}
+        />
+
         {partial && (
           <div className="banner">
             일부 출시 정보를 불러오지 못해 목록이 완전하지 않을 수 있습니다.
@@ -84,6 +121,12 @@ export function CalendarPage() {
               다시 시도
             </button>
           </div>
+        )}
+
+        {!loading && totalCount > 0 && games.length === 0 && (
+          <p className="muted filter-empty" role="status">
+            조건에 맞는 게임이 이 달에는 없습니다. 검색어나 필터를 바꿔 보세요.
+          </p>
         )}
 
         <div className={loading ? 'cal-body is-loading' : 'cal-body'}>

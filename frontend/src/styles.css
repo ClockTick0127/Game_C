@@ -667,6 +667,62 @@ input {
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
+/* ---------- 캘린더 검색·필터 ---------- */
+.cal-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.filter-search {
+  flex: 1 1 200px;
+  max-width: 320px;
+  height: 36px;
+}
+
+.filter-select {
+  height: 36px;
+  max-width: 180px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.filter-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.filter-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filter-check input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.filter-result {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.filter-empty {
+  margin: 0 0 12px;
+}
+
   background: var(--bg);
   color: var(--text);
   font: inherit;
