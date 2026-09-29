@@ -11,7 +11,9 @@ export async function startTestServer({
   rateLimit = false,
   rawgKey = '',
   rawgMaxCallsPerMinute = 10_000,
+  logRequests = false,
 } = {}) {
+  process.env.LOG_REQUESTS = logRequests ? '1' : '0';
   process.env.RAWG_MAX_CALLS_PER_MINUTE = String(rawgMaxCallsPerMinute);
   process.env.RATE_LIMIT_DISABLED = rateLimit ? '0' : '1';
   process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), 'game-calendar-test-')), 'test.db');

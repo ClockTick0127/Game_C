@@ -115,6 +115,10 @@ npm run format:check    # Prettier 서식 검사 (npm run format 으로 자동 �
 
 CI가 lint, 서식, 타입체크, 테스트, 빌드, 운영 의존성 취약점 검사(`npm audit`)를 실행합니다. 매주 월요일에도 자동으로 한 번 실행되고, Dependabot이 의존성·GitHub Actions·Docker 이미지 업데이트 PR을 올립니다. 줄바꿈은 LF로 통일합니다(`.gitattributes`, `.editorconfig`).
 
+## 로그
+
+API 요청이 끝나면 `<요청 ID> <메서드> <경로> <상태 코드> <걸린 시간>ms [user=<번호>]` 한 줄을 남기고, 모든 응답에 `X-Request-Id` 헤더를 붙입니다. 서버 오류 로그에도 같은 ID가 들어가므로 사용자가 겪은 문제를 찾아갈 수 있습니다. 쿼리 문자열·본문·쿠키는 기록하지 않습니다. `LOG_REQUESTS=0`으로 끌 수 있습니다.
+
 ## Docker
 
 ```bash

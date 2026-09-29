@@ -4,6 +4,8 @@ import type { User } from './services/users.ts';
 declare global {
   namespace Express {
     interface Request {
+      /** requestLogger가 붙이는 요청 ID */
+      id?: string;
       user?: User;
       sessionToken?: string;
     }

@@ -6,6 +6,7 @@ import { FRONTEND_DIST, TRUST_PROXY } from './config.ts';
 import { loadUser } from './middleware/auth.ts';
 import { checkOrigin } from './middleware/origin.ts';
 import { apiLimiter } from './middleware/rateLimit.ts';
+import { requestLogger } from './middleware/requestLog.ts';
 import { authRouter } from './routes/auth.ts';
 import { gamesRouter } from './routes/games.ts';
 import { meRouter } from './routes/me.ts';
@@ -16,6 +17,9 @@ export const app = express();
 
 app.disable('x-powered-by');
 if (TRUST_PROXY > 0) app.set('trust proxy', TRUST_PROXY);
+
+// 가장 먼저 실행해서 요청 제한에 걸리거나 도중에 실패한 요청에도 ID가 붙게 한다
+app.use(requestLogger);
 
 app.use(
   helmet({
@@ -58,7 +62,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof HttpError) {
     // 외부 API 장애·키 만료 같은 서버 쪽 문제는 응답만 하고 넘기면 운영자가 알 수 없다
     if (err.status >= 500) {
-      console.error(`[${err.status}] ${req.method} ${req.path} — ${err.detail ?? err.message}`);
+      console.error(`[${err.status}] ${req.method} ${req.path} — ${err.detail ?? err.message} (요청 ${req.id})`);
     }
     res.status(err.status).json({ error: err.message });
     return;
@@ -68,7 +72,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     res.status(err.status).json({ error: '요청 본문이 올바르지 않습니다.' });
     return;
   }
-  console.error(err);
+  console.error(`처리되지 않은 오류 (요청 ${req.id})`, err);
   res.status(500).json({ error: '서버 내부 오류가 발생했습니다.' });
 };
 app.use(errorHandler);

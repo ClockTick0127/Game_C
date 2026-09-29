@@ -152,6 +152,8 @@ describe('서버 로그와 사용자 메시지', () => {
     assert.equal(res.status, 502);
     assert.doesNotMatch(res.json.error, /\.env|RAWG_API_KEY/);
     assert.match(logged(), /502.*GET \/api\/games.*RAWG_API_KEY/);
+    // 로그의 요청 ID로 사용자가 겪은 문제를 서버 로그에서 찾을 수 있다
+    assert.ok(logged().includes(`(요청 ${res.headers.get('x-request-id')})`));
   });
 
   it('RAWG 한도 초과(429)는 503으로 알리고 로그에 남긴다', async () => {
