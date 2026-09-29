@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { errorMessage } from '../api/client';
 import * as meApi from '../api/me';
 import type { Game } from '../types';
@@ -52,17 +52,31 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
   const ids = useMemo(() => new Set(favorites.map((g) => g.id)), [favorites]);
 
+  // 같은 게임에 대한 요청은 누른 순서대로 하나씩 보낸다 (추가·삭제 요청이 서로 앞지르면 서버 상태가 화면과 달라진다)
+  const pending = useRef(new Map<number, Promise<unknown>>());
+
   const toggle = async (game: Game) => {
     const wasFavorite = ids.has(game.id);
-    const previous = favorites;
+    const withGame = (list: Game[]) => sortByRelease([...list.filter((g) => g.id !== game.id), game]);
+    const withoutGame = (list: Game[]) => list.filter((g) => g.id !== game.id);
+
     // 응답을 기다리지 않고 먼저 반영해 버튼이 즉시 반응하게 한다
-    setFavorites(wasFavorite ? favorites.filter((g) => g.id !== game.id) : sortByRelease([...favorites, game]));
+    setFavorites((list) => (wasFavorite ? withoutGame(list) : withGame(list)));
+
+    const previousRequest = pending.current.get(game.id) ?? Promise.resolve();
+    const request = previousRequest
+      .catch(() => {}) // 앞선 요청의 실패는 그 요청을 보낸 쪽이 처리한다
+      .then(() => (wasFavorite ? meApi.removeFavorite(game.id) : meApi.addFavorite(game)));
+    pending.current.set(game.id, request);
+
     try {
-      if (wasFavorite) await meApi.removeFavorite(game.id);
-      else await meApi.addFavorite(game);
+      await request;
     } catch (err) {
-      setFavorites(previous);
+      // 이 게임의 변경만 되돌린다. 그사이 다른 게임에 한 변경까지 지우지 않도록 목록 전체를 되돌리지 않는다.
+      setFavorites((list) => (wasFavorite ? withGame(list) : withoutGame(list)));
       throw err;
+    } finally {
+      if (pending.current.get(game.id) === request) pending.current.delete(game.id);
     }
   };
 

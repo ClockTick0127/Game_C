@@ -3,12 +3,14 @@ import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type React
 interface Props {
   title: string;
   onClose: () => void;
+  /** .modal에 더할 클래스 (크기 조정 등) */
+  className?: string;
   children: ReactNode;
 }
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ title, onClose, children }: Props) {
+export function Modal({ title, onClose, className, children }: Props) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export function Modal({ title, onClose, children }: Props) {
     <div className="modal-backdrop" onClick={onClose}>
       <div
         ref={modalRef}
-        className="modal"
+        className={className ? `modal ${className}` : 'modal'}
         role="dialog"
         aria-modal="true"
         aria-label={title}

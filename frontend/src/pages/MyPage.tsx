@@ -2,11 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { errorMessage } from '../api/client';
 import * as meApi from '../api/me';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DDay } from '../components/DDay';
 import { GameDetailModal } from '../components/GameDetail';
 import { GameThumb } from '../components/GameThumb';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useToast } from '../contexts/ToastContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import type { Game, User } from '../types';
 import { daysUntil, formatKoreanDate } from '../utils/calendar';
@@ -91,6 +93,7 @@ function ProfileSection({ user }: { user: User }) {
 
 function FavoritesSection() {
   const { favorites, loading, error, reload, toggle } = useFavorites();
+  const { showError } = useToast();
   const [selected, setSelected] = useState<Game | null>(null);
 
   const upcoming = favorites.filter((g) => daysUntil(g.released) >= 0);
@@ -101,7 +104,7 @@ function FavoritesSection() {
     try {
       await toggle(game);
     } catch (err) {
-      alert(`관심 게임을 삭제하지 못했습니다: ${errorMessage(err)}`);
+      showError(`관심 게임을 삭제하지 못했습니다: ${errorMessage(err)}`);
     }
   };
 
@@ -233,11 +236,11 @@ function PasswordSection() {
 
 function SessionSection() {
   const { logoutAll } = useAuth();
+  const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleClick = async () => {
-    if (!confirm('이 기기를 포함한 모든 기기에서 로그아웃합니다. 계속하시겠습니까?')) return;
+  const handleConfirm = async () => {
     setBusy(true);
     setError(null);
     try {
@@ -245,6 +248,7 @@ function SessionSection() {
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);
+      setConfirming(false);
     }
   };
 
@@ -252,10 +256,20 @@ function SessionSection() {
     <section className="card">
       <h2>로그인 관리</h2>
       <p className="muted">다른 기기나 브라우저에 로그인되어 있다면 한 번에 모두 로그아웃할 수 있습니다.</p>
-      <button type="button" className="btn" onClick={handleClick} disabled={busy}>
+      <button type="button" className="btn" onClick={() => setConfirming(true)} disabled={busy}>
         {busy ? '처리 중…' : '모든 기기에서 로그아웃'}
       </button>
       {error && <p className="form-error">{error}</p>}
+      {confirming && (
+        <ConfirmDialog
+          title="모든 기기에서 로그아웃"
+          message="이 기기를 포함한 모든 기기에서 로그아웃합니다. 계속하시겠습니까?"
+          confirmLabel="로그아웃"
+          busy={busy}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
     </section>
   );
 }
@@ -266,11 +280,15 @@ function DeleteAccountSection() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
+  // 비밀번호를 입력하고 제출하면 먼저 확인 창을 띄운다
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!confirm('정말 탈퇴하시겠습니까? 관심 게임을 포함한 모든 정보가 삭제되며 되돌릴 수 없습니다.')) return;
+    setConfirming(true);
+  };
 
+  const handleConfirm = async () => {
     setDeleting(true);
     setError(null);
     try {
@@ -281,6 +299,7 @@ function DeleteAccountSection() {
     } catch (err) {
       setError(errorMessage(err));
       setDeleting(false);
+      setConfirming(false);
     }
   };
 
@@ -303,6 +322,17 @@ function DeleteAccountSection() {
         </button>
       </form>
       {error && <p className="form-error">{error}</p>}
+      {confirming && (
+        <ConfirmDialog
+          title="회원 탈퇴"
+          message="정말 탈퇴하시겠습니까? 관심 게임을 포함한 모든 정보가 삭제되며 되돌릴 수 없습니다."
+          confirmLabel="탈퇴하기"
+          danger
+          busy={deleting}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
     </section>
   );
 }

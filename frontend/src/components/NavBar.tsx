@@ -1,10 +1,12 @@
 import { Link, NavLink, useNavigate } from 'react-router';
 import { errorMessage } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 export function NavBar() {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
+  const { showError } = useToast();
 
   const handleLogout = async () => {
     // 홈으로 먼저 이동해야 마이페이지에서 로그아웃할 때 RequireAuth가 로그인 페이지로 보내지 않는다 (App의 useTransitions 참고)
@@ -12,7 +14,7 @@ export function NavBar() {
     try {
       await logout();
     } catch (err) {
-      alert(`로그아웃에 실패했습니다: ${errorMessage(err)}`);
+      showError(`로그아웃에 실패했습니다: ${errorMessage(err)}`);
     }
   };
 
