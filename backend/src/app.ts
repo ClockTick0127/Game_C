@@ -4,6 +4,7 @@ import express, { type ErrorRequestHandler } from 'express';
 import helmet from 'helmet';
 import { FRONTEND_DIST, TRUST_PROXY } from './config.ts';
 import { loadUser } from './middleware/auth.ts';
+import { checkOrigin } from './middleware/origin.ts';
 import { apiLimiter } from './middleware/rateLimit.ts';
 import { authRouter } from './routes/auth.ts';
 import { gamesRouter } from './routes/games.ts';
@@ -29,6 +30,7 @@ app.use(
   }),
 );
 app.use('/api', apiLimiter);
+app.use('/api', checkOrigin);
 app.use(express.json({ limit: '20kb' }));
 app.use(loadUser);
 

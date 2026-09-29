@@ -96,6 +96,7 @@ NODE_ENV=production npm start -w backend        # Windows PowerShell: $env:NODE_
 `frontend/dist`가 있으면 백엔드(기본 4000 포트)가 화면과 API를 함께 서빙합니다.
 nginx 등 리버스 프록시 뒤에서 실행한다면 `TRUST_PROXY=1`을 설정해야 클라이언트 IP(요청 제한)가 올바르게 잡힙니다.
 요청 제한: 로그인 15분당 10회(실패 기준), 가입 1시간당 10회, 비밀번호 변경·탈퇴 15분당 10회, API 전체 분당 300회.
+상태를 바꾸는 요청(POST/PUT/PATCH/DELETE)은 Origin 헤더가 서버 주소와 같아야 통과합니다(CSRF 방어). 화면을 다른 주소에서 서빙한다면 `ALLOWED_ORIGINS=https://app.example.com`을 설정하세요. 개발 모드에서는 Vite(5173) 출처가 기본 허용됩니다.
 
 ## 테스트
 

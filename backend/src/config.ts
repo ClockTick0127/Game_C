@@ -10,3 +10,13 @@ export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 export const TRUST_PROXY = Number(process.env.TRUST_PROXY) || 0;
 /** 빌드된 프론트엔드 경로. 이 폴더가 있으면 API 서버가 정적 파일도 함께 서빙한다 */
 export const FRONTEND_DIST = process.env.FRONTEND_DIST || fileURLToPath(new URL('../../frontend/dist', import.meta.url));
+/** 개발 중에는 Vite 프록시가 Host를 백엔드 주소로 바꿔 보내므로, 프론트엔드 개발 서버 출처를 기본으로 허용한다 */
+const DEV_ORIGINS = IS_PRODUCTION ? [] : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+/** 같은 주소가 아니어도 API를 호출할 수 있는 출처 (ALLOWED_ORIGINS에 쉼표로 구분, 예: https://app.example.com) */
+export const ALLOWED_ORIGINS = [
+  ...DEV_ORIGINS,
+  ...(process.env.ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean),
+];
