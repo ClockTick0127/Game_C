@@ -101,7 +101,9 @@ nginx 등 리버스 프록시 뒤에서 실행한다면 `TRUST_PROXY=1`을 설�
 ## 테스트
 
 ```bash
-npm test    # 백엔드 API 테스트 (임시 SQLite DB를 만들어 실제 HTTP로 검증)
+npm test                # 백엔드 + 프론트엔드 테스트를 모두 실행
+npm test -w backend     # 백엔드 API 테스트 (임시 SQLite DB를 만들어 실제 HTTP로 검증)
+npm test -w frontend    # 프론트엔드 테스트 (Vitest + Testing Library, jsdom)
 ```
 
 ## Docker
