@@ -19,6 +19,7 @@ export function CalendarHeader({ year, month, totalCount, loading, onPrev, onNex
   const [yearDraft, setYearDraft] = useState(String(year));
   const [monthDraft, setMonthDraft] = useState(month);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const yearInputRef = useRef<HTMLInputElement>(null);
 
   // 열 때마다 현재 보고 있는 달로 초기화
   const openPicker = () => {
@@ -26,6 +27,11 @@ export function CalendarHeader({ year, month, totalCount, loading, onPrev, onNex
     setMonthDraft(month);
     setOpen(true);
   };
+
+  // 선택기를 열면 연도 입력창으로 포커스를 옮긴다
+  useEffect(() => {
+    if (open) yearInputRef.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -67,7 +73,8 @@ export function CalendarHeader({ year, month, totalCount, loading, onPrev, onNex
   return (
     <header className="cal-header">
       <div className="cal-title">
-        <div className="cal-picker" ref={pickerRef} onKeyDown={onKeyDown}>
+        {/* 선택기 안의 입력창·버튼에서 올라오는 키 입력(Esc, Enter, 방향키)을 한곳에서 받는 컨테이너 */}
+        <div className="cal-picker" ref={pickerRef} role="presentation" onKeyDown={onKeyDown}>
           <button
             type="button"
             className="cal-picker-trigger"
@@ -88,7 +95,7 @@ export function CalendarHeader({ year, month, totalCount, loading, onPrev, onNex
                   type="text"
                   inputMode="numeric"
                   maxLength={4}
-                  autoFocus
+                  ref={yearInputRef}
                   value={yearDraft}
                   aria-label="연도 입력"
                   aria-invalid={!validYear}
@@ -117,7 +124,9 @@ export function CalendarHeader({ year, month, totalCount, loading, onPrev, onNex
               </div>
 
               <p className="cal-popover-hint">
-                {validYear ? '연도를 입력하고 Enter, 또는 월을 눌러 이동' : `${MIN_YEAR}~${MAX_YEAR}년 사이로 입력하세요`}
+                {validYear
+                  ? '연도를 입력하고 Enter, 또는 월을 눌러 이동'
+                  : `${MIN_YEAR}~${MAX_YEAR}년 사이로 입력하세요`}
               </p>
             </div>
           )}

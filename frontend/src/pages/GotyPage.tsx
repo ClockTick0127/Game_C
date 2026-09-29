@@ -10,7 +10,17 @@ type Winner = (typeof winners)[number];
 
 /** RAWG에서 못 찾았을 때도 카드를 그릴 수 있도록 만드는 대체 정보. url이 null이라 클릭해도 열리지 않는다. */
 function fallbackGame(w: Winner): Game {
-  return { id: w.year, name: w.name, released: '', image: null, rating: 0, metacritic: null, platforms: [], genres: w.genres, url: null };
+  return {
+    id: w.year,
+    name: w.name,
+    released: '',
+    image: null,
+    rating: 0,
+    metacritic: null,
+    platforms: [],
+    genres: w.genres,
+    url: null,
+  };
 }
 
 export function GotyPage() {
@@ -37,8 +47,8 @@ export function GotyPage() {
       <header className="goty-header">
         <h1>역대 GOTY</h1>
         <p>
-          The Game Awards가 선정한 올해의 게임(Game of the Year) 수상작입니다. 2014년 첫 시상식부터 {winners.length}
-          개 작품. 게임을 누르면 상세 정보를 볼 수 있어요.
+          The Game Awards가 선정한 올해의 게임(Game of the Year) 수상작입니다. 2014년 첫 시상식부터 {winners.length}개
+          작품. 게임을 누르면 상세 정보를 볼 수 있어요.
         </p>
       </header>
 
@@ -48,7 +58,10 @@ export function GotyPage() {
           const inner = (
             <>
               <span className="goty-year">{w.year}</span>
-              <GameThumb game={game ?? fallbackGame(w)} className={game === undefined ? 'goty-thumb is-loading' : 'goty-thumb'} />
+              <GameThumb
+                game={game ?? fallbackGame(w)}
+                className={game === undefined ? 'goty-thumb is-loading' : 'goty-thumb'}
+              />
               <div className="goty-info">
                 <h2>{w.name}</h2>
                 <p className="goty-dev">{w.developer}</p>

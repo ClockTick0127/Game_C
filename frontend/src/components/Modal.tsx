@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 interface Props {
   title: string;
@@ -8,7 +8,8 @@ interface Props {
   children: ReactNode;
 }
 
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Modal({ title, onClose, className, children }: Props) {
   const modalRef = useRef<HTMLDivElement>(null);
@@ -34,28 +35,40 @@ export function Modal({ title, onClose, className, children }: Props) {
     };
   }, []);
 
-  // Tab이 모달 밖으로 빠져나가지 않게 처음과 끝을 이어 준다
-  const trapFocus = (e: ReactKeyboardEvent) => {
-    if (e.key !== 'Tab' || !modalRef.current) return;
-    const items = [...modalRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
-    const first = items[0];
-    const last = items[items.length - 1];
-    if (!first || !last) {
-      e.preventDefault();
-      return;
-    }
-    const active = document.activeElement;
-    if (e.shiftKey && (active === first || active === modalRef.current)) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && active === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  };
+  // Tab이 모달 밖으로 빠져나가지 않게 처음과 끝을 이어 준다.
+  // JSX의 onKeyDown이 아니라 DOM 리스너로 다는 이유: role="dialog" 요소에 React 이벤트 핸들러를 붙이면 접근성 규칙(jsx-a11y)에 걸리고,
+  // 여기서는 화면 요소에 반응하는 것이 아니라 대화상자 전체의 포커스 이동을 관리하는 것이기 때문이다.
+  useEffect(() => {
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    const trapFocus = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const items = [...modal.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) {
+        e.preventDefault();
+        return;
+      }
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === modal)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    modal.addEventListener('keydown', trapFocus);
+    return () => modal.removeEventListener('keydown', trapFocus);
+  }, []);
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    // 바깥(배경) 클릭은 마우스 사용자를 위한 편의 기능이다. 키보드 사용자는 Esc와 닫기 버튼을 쓴다.
+    // 배경 자체를 눌렀을 때만 닫고, 모달 안을 누른 클릭은 무시한다.
+    <div className="modal-backdrop" role="presentation" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div
         ref={modalRef}
         className={className ? `modal ${className}` : 'modal'}
@@ -63,8 +76,6 @@ export function Modal({ title, onClose, className, children }: Props) {
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={trapFocus}
       >
         <button type="button" className="modal-close" onClick={onClose} aria-label="닫기">
           ×

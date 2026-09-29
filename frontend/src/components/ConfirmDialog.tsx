@@ -23,7 +23,12 @@ export function ConfirmDialog({ title, message, confirmLabel, danger, busy, onCo
           <button type="button" className="btn" onClick={onCancel}>
             취소
           </button>
-          <button type="button" className={danger ? 'btn btn-danger' : 'btn btn-primary'} onClick={onConfirm} disabled={busy}>
+          <button
+            type="button"
+            className={danger ? 'btn btn-danger' : 'btn btn-primary'}
+            onClick={onConfirm}
+            disabled={busy}
+          >
             {confirmLabel}
           </button>
         </div>

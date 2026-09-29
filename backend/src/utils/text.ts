@@ -3,5 +3,8 @@
  * (예: "SILENT HILL: Townfall" → "silenthilltownfall")
  */
 export function normalizeTitle(name: string): string {
-  return name.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  return name
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, '');
 }

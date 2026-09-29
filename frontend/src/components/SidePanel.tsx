@@ -69,7 +69,9 @@ function PanelIntro({
 
       {top.length > 0 && (
         <section className="intro-ranking">
-          <h3>{month + 1}월 인기 게임 TOP {top.length}</h3>
+          <h3>
+            {month + 1}월 인기 게임 TOP {top.length}
+          </h3>
           <ol className="ranking-list">
             {top.map((game, i) => (
               <li key={game.id}>

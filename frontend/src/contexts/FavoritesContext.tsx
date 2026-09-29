@@ -19,6 +19,15 @@ interface FavoritesValue {
 
 const FavoritesContext = createContext<FavoritesValue | null>(null);
 
+/** 서버에서 받아 온 목록. 어느 사용자의 것인지 함께 기억한다. */
+interface Loaded {
+  userId: number;
+  favorites: Game[];
+  error: string | null;
+}
+
+const NO_FAVORITES: Game[] = [];
+
 function sortByRelease(games: Game[]): Game[] {
   return [...games].sort((a, b) => a.released.localeCompare(b.released));
 }
@@ -26,31 +35,34 @@ function sortByRelease(games: Game[]): Game[] {
 export function FavoritesProvider({ children }: { children: ReactNode }) {
   // user 객체 대신 id에 의존해, 닉네임 변경 같은 갱신으로는 목록을 다시 부르지 않는다
   const userId = useAuth().user?.id;
-  const [favorites, setFavorites] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
   // 로그인한 사용자가 바뀔 때마다 목록을 새로 불러온다
   useEffect(() => {
-    setFavorites([]);
-    setError(null);
     if (userId === undefined) return;
 
     let cancelled = false;
-    setLoading(true);
     meApi
       .fetchFavorites()
-      .then(({ games }) => !cancelled && setFavorites(games))
+      .then(({ games }) => !cancelled && setLoaded({ userId, favorites: games, error: null }))
       // 캘린더 사용에는 지장이 없으므로 화면을 막지는 않고, 관심 게임 목록을 보여주는 곳에서 안내한다
-      .catch((err: unknown) => !cancelled && setError(errorMessage(err)))
-      .finally(() => !cancelled && setLoading(false));
+      .catch((err: unknown) => !cancelled && setLoaded({ userId, favorites: [], error: errorMessage(err) }));
     return () => {
       cancelled = true;
+      setLoaded(null); // 사용자가 바뀌거나 다시 불러오기 전에 이전 목록을 버린다
     };
   }, [userId, reloadToken]);
 
+  // 지금 로그인한 사용자의 목록만 인정한다. 아직 못 받았으면 불러오는 중이다.
+  const current = userId !== undefined && loaded?.userId === userId ? loaded : null;
+  const favorites = current?.favorites ?? NO_FAVORITES;
+  const loading = userId !== undefined && current === null;
+
   const ids = useMemo(() => new Set(favorites.map((g) => g.id)), [favorites]);
+
+  const updateFavorites = (update: (list: Game[]) => Game[]) =>
+    setLoaded((cur) => (cur && cur.userId === userId ? { ...cur, favorites: update(cur.favorites) } : cur));
 
   // 같은 게임에 대한 요청은 누른 순서대로 하나씩 보낸다 (추가·삭제 요청이 서로 앞지르면 서버 상태가 화면과 달라진다)
   const pending = useRef(new Map<number, Promise<unknown>>());
@@ -61,7 +73,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     const withoutGame = (list: Game[]) => list.filter((g) => g.id !== game.id);
 
     // 응답을 기다리지 않고 먼저 반영해 버튼이 즉시 반응하게 한다
-    setFavorites((list) => (wasFavorite ? withoutGame(list) : withGame(list)));
+    updateFavorites(wasFavorite ? withoutGame : withGame);
 
     const previousRequest = pending.current.get(game.id) ?? Promise.resolve();
     const request = previousRequest
@@ -73,7 +85,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       await request;
     } catch (err) {
       // 이 게임의 변경만 되돌린다. 그사이 다른 게임에 한 변경까지 지우지 않도록 목록 전체를 되돌리지 않는다.
-      setFavorites((list) => (wasFavorite ? withGame(list) : withoutGame(list)));
+      updateFavorites(wasFavorite ? withGame : withoutGame);
       throw err;
     } finally {
       if (pending.current.get(game.id) === request) pending.current.delete(game.id);
@@ -81,7 +93,16 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <FavoritesContext.Provider value={{ favorites, loading, error, reload: () => setReloadToken((t) => t + 1), isFavorite: (id) => ids.has(id), toggle }}>
+    <FavoritesContext.Provider
+      value={{
+        favorites,
+        loading,
+        error: current?.error ?? null,
+        reload: () => setReloadToken((t) => t + 1),
+        isFavorite: (id) => ids.has(id),
+        toggle,
+      }}
+    >
       {children}
     </FavoritesContext.Provider>
   );

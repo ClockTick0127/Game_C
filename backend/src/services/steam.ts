@@ -66,7 +66,10 @@ export async function fetchSteamMetacritic(appId: number): Promise<Metacritic | 
     });
     if (!res.ok) return null;
     // 점수가 없으면 data가 빈 배열([])로 온다
-    const data = (await res.json()) as Record<string, { success: boolean; data?: { metacritic?: { score: number; url: string } } }>;
+    const data = (await res.json()) as Record<
+      string,
+      { success: boolean; data?: { metacritic?: { score: number; url: string } } }
+    >;
     const mc = data[appId]?.data?.metacritic;
     if (!mc || !Number.isFinite(mc.score)) return null;
 
@@ -74,7 +77,8 @@ export async function fetchSteamMetacritic(appId: number): Promise<Metacritic | 
     let url: string | null = null;
     try {
       const parsed = new URL(mc.url);
-      if (parsed.protocol === 'https:' && parsed.hostname.endsWith('metacritic.com')) url = parsed.origin + parsed.pathname;
+      if (parsed.protocol === 'https:' && parsed.hostname.endsWith('metacritic.com'))
+        url = parsed.origin + parsed.pathname;
     } catch {
       // 링크가 이상하면 점수만 보여준다
     }

@@ -41,7 +41,11 @@ describe('회원가입 · 로그인 · 로그아웃', () => {
     const c = t.client();
     assert.equal((await signup(c, 'not-an-email')).status, 400);
     assert.equal((await signup(c, 'short@example.com', '1234567')).status, 400);
-    const shortNick = await c.request('POST', '/api/auth/signup', { email: 'x@example.com', password: PASSWORD, nickname: 'a' });
+    const shortNick = await c.request('POST', '/api/auth/signup', {
+      email: 'x@example.com',
+      password: PASSWORD,
+      nickname: 'a',
+    });
     assert.equal(shortNick.status, 400);
   });
 
@@ -49,11 +53,18 @@ describe('회원가입 · 로그인 · 로그아웃', () => {
     await signup(t.client(), 'login@example.com');
 
     const ok = t.client();
-    assert.equal((await ok.request('POST', '/api/auth/login', { email: 'login@example.com', password: PASSWORD })).status, 200);
+    assert.equal(
+      (await ok.request('POST', '/api/auth/login', { email: 'login@example.com', password: PASSWORD })).status,
+      200,
+    );
     assert.equal((await ok.request('GET', '/api/auth/me')).json.user.email, 'login@example.com');
 
-    const wrong = await t.client().request('POST', '/api/auth/login', { email: 'login@example.com', password: 'wrong-password' });
-    const missing = await t.client().request('POST', '/api/auth/login', { email: 'nobody@example.com', password: PASSWORD });
+    const wrong = await t
+      .client()
+      .request('POST', '/api/auth/login', { email: 'login@example.com', password: 'wrong-password' });
+    const missing = await t
+      .client()
+      .request('POST', '/api/auth/login', { email: 'nobody@example.com', password: PASSWORD });
     assert.equal(wrong.status, 401);
     assert.equal(missing.status, 401);
     // 가입 여부가 드러나지 않도록 같은 메시지를 쓴다
@@ -113,7 +124,9 @@ describe('마이페이지', () => {
 
     const old = await t.client().request('POST', '/api/auth/login', { email: 'pw@example.com', password: PASSWORD });
     assert.equal(old.status, 401);
-    const fresh = await t.client().request('POST', '/api/auth/login', { email: 'pw@example.com', password: 'new-password-1' });
+    const fresh = await t
+      .client()
+      .request('POST', '/api/auth/login', { email: 'pw@example.com', password: 'new-password-1' });
     assert.equal(fresh.status, 200);
   });
 
@@ -128,15 +141,24 @@ describe('마이페이지', () => {
 
     assert.equal((await c.request('DELETE', '/api/me/favorites/1')).status, 204);
     const list = (await c.request('GET', '/api/me/favorites')).json.games as { id: number }[];
-    assert.deepEqual(list.map((g) => g.id), [2]);
+    assert.deepEqual(
+      list.map((g) => g.id),
+      [2],
+    );
   });
 
   it('관심 게임 입력 검증: ID 불일치, http/javascript URL 거부', async () => {
     const c = t.client();
     await signup(c, 'favbad@example.com');
     assert.equal((await c.request('PUT', '/api/me/favorites/3', sampleGame(4))).status, 400);
-    assert.equal((await c.request('PUT', '/api/me/favorites/5', { ...sampleGame(5), url: 'javascript:alert(1)' })).status, 400);
-    assert.equal((await c.request('PUT', '/api/me/favorites/6', { ...sampleGame(6), image: 'http://example.com/a.jpg' })).status, 400);
+    assert.equal(
+      (await c.request('PUT', '/api/me/favorites/5', { ...sampleGame(5), url: 'javascript:alert(1)' })).status,
+      400,
+    );
+    assert.equal(
+      (await c.request('PUT', '/api/me/favorites/6', { ...sampleGame(6), image: 'http://example.com/a.jpg' })).status,
+      400,
+    );
     assert.equal((await c.request('PUT', '/api/me/favorites/abc', sampleGame(7))).status, 400);
   });
 
@@ -233,7 +255,9 @@ describe('모든 기기에서 로그아웃', () => {
     assert.equal((await other.request('GET', '/api/auth/me')).json.user.email, 'all-other@example.com');
 
     // 계정은 그대로라 다시 로그인할 수 있다
-    const again = await t.client().request('POST', '/api/auth/login', { email: 'all-a@example.com', password: PASSWORD });
+    const again = await t
+      .client()
+      .request('POST', '/api/auth/login', { email: 'all-a@example.com', password: PASSWORD });
     assert.equal(again.status, 200);
   });
 

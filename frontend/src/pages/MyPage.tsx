@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { errorMessage } from '../api/client';
 import * as meApi from '../api/me';
@@ -36,6 +36,12 @@ function ProfileSection({ user }: { user: User }) {
   const [nickname, setNickname] = useState(user.nickname);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const nicknameRef = useRef<HTMLInputElement>(null);
+
+  // 수정 모드로 들어가면 닉네임 입력창으로 포커스를 옮긴다
+  useEffect(() => {
+    if (editing) nicknameRef.current?.focus();
+  }, [editing]);
 
   const startEdit = () => {
     setNickname(user.nickname);
@@ -64,7 +70,14 @@ function ProfileSection({ user }: { user: User }) {
         <dd>
           {editing ? (
             <form className="inline-form" onSubmit={handleSubmit}>
-              <input value={nickname} onChange={(e) => setNickname(e.target.value)} minLength={2} maxLength={20} required autoFocus />
+              <input
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                minLength={2}
+                maxLength={20}
+                required
+                ref={nicknameRef}
+              />
               <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
                 저장
               </button>
@@ -121,7 +134,12 @@ function FavoritesSection() {
               </span>
             </span>
           </button>
-          <button type="button" className="fav-remove" onClick={() => handleRemove(game)} aria-label={`${game.name} 관심 게임에서 삭제`}>
+          <button
+            type="button"
+            className="fav-remove"
+            onClick={() => handleRemove(game)}
+            aria-label={`${game.name} 관심 게임에서 삭제`}
+          >
             ×
           </button>
         </li>
@@ -223,7 +241,13 @@ function PasswordSection() {
         </label>
         <label className="field">
           <span>새 비밀번호 확인</span>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />
+          <input
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            autoComplete="new-password"
+            required
+          />
         </label>
         {message && <p className={message.type === 'error' ? 'form-error' : 'form-success'}>{message.text}</p>}
         <button type="submit" className="btn btn-primary" disabled={saving}>

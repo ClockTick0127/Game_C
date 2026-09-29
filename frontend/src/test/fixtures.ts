@@ -16,7 +16,12 @@ export function makeGame(id: number, overrides: Partial<Game> = {}): Game {
   };
 }
 
-export const testUser: User = { id: 1, email: 'tester@example.com', nickname: '테스터', createdAt: '2026-01-01T00:00:00.000Z' };
+export const testUser: User = {
+  id: 1,
+  email: 'tester@example.com',
+  nickname: '테스터',
+  createdAt: '2026-01-01T00:00:00.000Z',
+};
 
 /** 밖에서 직접 성공·실패시킬 수 있는 Promise (요청 순서와 타이밍을 제어하는 테스트용) */
 export function deferred<T = void>() {

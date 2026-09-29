@@ -106,6 +106,15 @@ npm test -w backend     # 백엔드 API 테스트 (임시 SQLite DB를 만들어
 npm test -w frontend    # 프론트엔드 테스트 (Vitest + Testing Library, jsdom)
 ```
 
+## 코드 품질
+
+```bash
+npm run lint            # ESLint (TypeScript, React Hooks, 접근성 jsx-a11y)
+npm run format:check    # Prettier 서식 검사 (npm run format 으로 자동 정리)
+```
+
+CI가 lint, 서식, 타입체크, 테스트, 빌드, 운영 의존성 취약점 검사(`npm audit`)를 실행합니다. 매주 월요일에도 자동으로 한 번 실행되고, Dependabot이 의존성·GitHub Actions·Docker 이미지 업데이트 PR을 올립니다. 줄바꿈은 LF로 통일합니다(`.gitattributes`, `.editorconfig`).
+
 ## Docker
 
 ```bash

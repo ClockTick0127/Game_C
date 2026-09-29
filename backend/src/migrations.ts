@@ -70,7 +70,9 @@ export function runMigrations(db: DatabaseSync, list: Migration[] = migrations):
   const latest = list.length;
   if (start > latest) {
     // 새 버전 서버가 올려둔 DB를 옛 버전 코드로 열면 스키마가 맞지 않아 데이터가 깨질 수 있다
-    throw new Error(`DB 스키마 버전(${start})이 이 서버가 아는 최신 버전(${latest})보다 높습니다. 서버를 최신 버전으로 업데이트하세요.`);
+    throw new Error(
+      `DB 스키마 버전(${start})이 이 서버가 아는 최신 버전(${latest})보다 높습니다. 서버를 최신 버전으로 업데이트하세요.`,
+    );
   }
 
   let applied = 0;

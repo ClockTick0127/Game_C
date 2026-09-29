@@ -7,12 +7,17 @@ describe('safeRedirect', () => {
     expect(safeRedirect('/goty?year=2024')).toBe('/goty?year=2024');
   });
 
-  it.each([null, '', 'mypage', 'https://evil.example.com', '//evil.example.com', '/\\evil.example.com', 'javascript:alert(1)'])(
-    '외부 주소나 잘못된 값(%s)은 홈으로 보낸다',
-    (value) => {
-      expect(safeRedirect(value)).toBe('/');
-    },
-  );
+  it.each([
+    null,
+    '',
+    'mypage',
+    'https://evil.example.com',
+    '//evil.example.com',
+    '/\\evil.example.com',
+    'javascript:alert(1)',
+  ])('외부 주소나 잘못된 값(%s)은 홈으로 보낸다', (value) => {
+    expect(safeRedirect(value)).toBe('/');
+  });
 });
 
 describe('withRedirect / loginPath', () => {

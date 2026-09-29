@@ -3,13 +3,20 @@ import { describe, it } from 'node:test';
 import { DatabaseSync } from 'node:sqlite';
 import { migrations, runMigrations } from '../src/migrations.ts';
 
-const version = (db: DatabaseSync) => (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+const version = (db: DatabaseSync) =>
+  (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
 const tables = (db: DatabaseSync) =>
-  (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all() as { name: string }[]).map(
-    (r) => r.name,
-  );
+  (
+    db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+      .all() as { name: string }[]
+  ).map((r) => r.name);
 const indexes = (db: DatabaseSync) =>
-  (db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%' ORDER BY name").all() as { name: string }[]).map((r) => r.name);
+  (
+    db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%' ORDER BY name").all() as {
+      name: string;
+    }[]
+  ).map((r) => r.name);
 
 describe('DB 마이그레이션', () => {
   it('새 DB는 모든 마이그레이션을 적용해 최신 버전이 된다', () => {
@@ -56,7 +63,9 @@ describe('DB 마이그레이션', () => {
 
     assert.equal(runMigrations(db), migrations.length);
     assert.equal(version(db), migrations.length);
-    const user = db.prepare('SELECT nickname FROM users WHERE email = ?').get('old@example.com') as { nickname: string };
+    const user = db.prepare('SELECT nickname FROM users WHERE email = ?').get('old@example.com') as {
+      nickname: string;
+    };
     assert.equal(user.nickname, '기존회원');
     assert.equal(indexes(db).length, 2);
   });
