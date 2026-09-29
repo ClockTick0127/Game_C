@@ -4,6 +4,7 @@ import { RequireAuth } from './components/RequireAuth';
 import { AuthProvider } from './contexts/AuthContext';
 import { FavoritesProvider } from './contexts/FavoritesContext';
 import { CalendarPage } from './pages/CalendarPage';
+import { GotyPage } from './pages/GotyPage';
 import { LoginPage } from './pages/LoginPage';
 import { MyPage } from './pages/MyPage';
 import { SignupPage } from './pages/SignupPage';
@@ -20,6 +21,7 @@ export default function App() {
             <main>
               <Routes>
                 <Route path="/" element={<CalendarPage />} />
+                <Route path="/goty" element={<GotyPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 <Route

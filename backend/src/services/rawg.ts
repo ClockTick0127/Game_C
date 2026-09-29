@@ -122,3 +122,21 @@ export async function fetchStoreLinks(gameId: number): Promise<RawgStoreLink[]> 
   const data = await rawgGet<{ results: { store_id: number; url: string }[] }>(`/games/${gameId}/stores`);
   return data.results.map((s) => ({ storeId: s.store_id, url: s.url }));
 }
+
+/**
+ * 이름으로 게임 하나를 찾는다. 이름이 정확히 같은 결과를 우선하고, year(출시 연도)가 주어지면 그 해에 나온 것을 먼저 고른다.
+ * (같은 이름의 리메이크·후속작이 함께 검색되는 경우가 있다. 예: 2018년 "God of War"와 2022년 PC판 항목)
+ */
+export async function searchGameByName(name: string, year?: number): Promise<Game | null> {
+  const data = await rawgGet<RawgListResponse>('/games', {
+    search: name,
+    search_precise: 'true',
+    page_size: '10',
+  });
+  const wanted = name.trim().toLowerCase();
+  const exact = data.results.filter((g) => g.name.toLowerCase() === wanted);
+  const sameYear = (g: RawgGame) => year !== undefined && g.released?.startsWith(String(year));
+  const match =
+    exact.find(sameYear) ?? data.results.find((g) => sameYear(g) && g.name.toLowerCase().startsWith(wanted)) ?? exact[0] ?? data.results[0];
+  return match ? normalize(match) : null;
+}

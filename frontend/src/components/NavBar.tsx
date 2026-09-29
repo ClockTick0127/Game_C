@@ -21,6 +21,14 @@ export function NavBar() {
       <Link to="/" className="brand">
         게임 캘린더
       </Link>
+      <nav className="topbar-nav topbar-menu">
+        <NavLink to="/" end className="nav-link">
+          캘린더
+        </NavLink>
+        <NavLink to="/goty" className="nav-link">
+          역대 GOTY
+        </NavLink>
+      </nav>
       {/* 로그인 상태를 확인하는 동안에는 버튼이 깜빡이지 않도록 비워둔다 */}
       {!loading && (
         <nav className="topbar-nav">

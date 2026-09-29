@@ -1,0 +1,14 @@
+[
+  { "year": 2025, "name": "Clair Obscur: Expedition 33", "developer": "Sandfall Interactive", "genres": ["JRPG", "턴제 RPG"] },
+  { "year": 2024, "name": "Astro Bot", "developer": "Team Asobi", "genres": ["플랫포머"] },
+  { "year": 2023, "name": "Baldur's Gate 3", "developer": "Larian Studios", "genres": ["RPG"] },
+  { "year": 2022, "name": "Elden Ring", "developer": "FromSoftware", "genres": ["액션 RPG"] },
+  { "year": 2021, "name": "It Takes Two", "developer": "Hazelight Studios", "genres": ["협동 어드벤처"] },
+  { "year": 2020, "name": "The Last of Us Part II", "developer": "Naughty Dog", "genres": ["액션 어드벤처"] },
+  { "year": 2019, "name": "Sekiro: Shadows Die Twice", "developer": "FromSoftware", "genres": ["액션 어드벤처"] },
+  { "year": 2018, "name": "God of War", "developer": "Santa Monica Studio", "genres": ["액션 어드벤처"] },
+  { "year": 2017, "name": "The Legend of Zelda: Breath of the Wild", "developer": "Nintendo EPD", "genres": ["액션 어드벤처"] },
+  { "year": 2016, "name": "Overwatch", "developer": "Blizzard Entertainment", "genres": ["팀 슈터"] },
+  { "year": 2015, "name": "The Witcher 3: Wild Hunt", "developer": "CD Projekt Red", "genres": ["오픈 월드 RPG"] },
+  { "year": 2014, "name": "Dragon Age: Inquisition", "developer": "BioWare", "genres": ["RPG"] }
+]

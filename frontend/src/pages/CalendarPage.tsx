@@ -62,6 +62,7 @@ export function CalendarPage() {
           onPrev={() => moveMonth(-1)}
           onNext={() => moveMonth(1)}
           onToday={() => changeMonth(currentMonth())}
+          onJump={(y, m) => changeMonth({ year: y, month: m })}
         />
 
         {error && (
