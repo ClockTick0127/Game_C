@@ -96,3 +96,10 @@ NODE_ENV=production npm start -w backend        # Windows PowerShell: $env:NODE_
 `frontend/dist`가 있으면 백엔드(기본 4000 포트)가 화면과 API를 함께 서빙합니다.
 nginx 등 리버스 프록시 뒤에서 실행한다면 `TRUST_PROXY=1`을 설정해야 클라이언트 IP(요청 제한)가 올바르게 잡힙니다.
 요청 제한: 로그인 15분당 10회(실패 기준), 가입 1시간당 10회, 비밀번호 변경·탈퇴 15분당 10회, API 전체 분당 300회.
+
+## 테스트
+
+```bash
+npm test    # 백엔드 API 테스트 (임시 SQLite DB를 만들어 실제 HTTP로 검증)
+```
+

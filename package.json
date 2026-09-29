@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "concurrently -n back,front -c blue,magenta \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "build": "npm run build -w frontend",
-    "typecheck": "npm run typecheck --workspaces"
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm test -w backend"
   },
   "repository": {
     "type": "git",

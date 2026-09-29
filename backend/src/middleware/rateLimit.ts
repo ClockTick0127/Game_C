@@ -1,10 +1,14 @@
 import { rateLimit } from 'express-rate-limit';
 
+/** 테스트에서 다른 검증에 영향을 주지 않도록 요청 제한을 끌 수 있다 (운영에서는 설정하지 않는다) */
+const DISABLED = process.env.RATE_LIMIT_DISABLED === '1';
+
 function limiter(windowMs: number, limit: number, message: string, skipSuccessfulRequests = false) {
   return rateLimit({
     windowMs,
     limit,
     skipSuccessfulRequests,
+    skip: () => DISABLED,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     handler: (_req, res) => {
