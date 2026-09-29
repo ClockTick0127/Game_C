@@ -1,3 +1,6 @@
+# Dependabot: 의존성·GitHub Actions·Docker 이미지의 새 버전이 나오면 업데이트 PR을 자동으로 올려 준다.
+# PR을 병합하기 전에는 항상 CI(lint, 서식, 타입체크, 테스트, 빌드, 감사, Docker)가 통과하는지 확인한다.
+# 처리 방법은 README의 "의존성 업데이트(Dependabot)"를 참고한다.
 version: 2
 updates:
   # npm 워크스페이스(frontend, backend)는 루트의 package-lock.json 하나로 관리된다
@@ -10,6 +13,14 @@ updates:
       # 마이너·패치 업데이트는 한 PR로 묶어 PR이 쏟아지지 않게 한다
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # ESLint는 9 버전대에 고정한다. eslint-plugin-jsx-a11y(접근성 검사)가 ESLint 9까지만 지원해서,
+      # 10으로 올리면 npm ci가 의존성 충돌로 실패한다. @eslint/js는 ESLint와 같은 메이저여야 하므로 함께 묶어 무시한다.
+      # jsx-a11y가 ESLint 10을 지원하게 되면 이 두 항목을 지우고 함께 올린다.
+      - dependency-name: eslint
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
 
   # CI 워크플로가 쓰는 액션 (actions/checkout 등)
   - package-ecosystem: github-actions
@@ -18,6 +29,8 @@ updates:
       interval: weekly
 
   # Dockerfile의 베이스 이미지 (node:24-slim)
+  # Node 메이저 버전이 바뀌는 PR은 실제 배포 런타임이 바뀌는 것이라, CI가 통과해도 바로 병합하지 말고
+  # Dockerfile·README·CI(setup-node)·package.json engines의 Node 버전을 함께 올릴지 검토한다.
   - package-ecosystem: docker
     directory: /
     schedule:

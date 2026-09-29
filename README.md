@@ -115,6 +115,16 @@ npm run format:check    # Prettier 서식 검사 (npm run format 으로 자동 �
 
 CI가 lint, 서식, 타입체크, 테스트, 빌드, 운영 의존성 취약점 검사(`npm audit`)를 실행합니다. 매주 월요일에도 자동으로 한 번 실행되고, Dependabot이 의존성·GitHub Actions·Docker 이미지 업데이트 PR을 올립니다. 줄바꿈은 LF로 통일합니다(`.gitattributes`, `.editorconfig`).
 
+### 의존성 업데이트 (Dependabot)
+
+매주 npm 의존성, GitHub Actions, Docker 베이스 이미지의 새 버전을 확인해 PR을 올립니다(`.github/dependabot.yml`). npm 마이너·패치 업데이트는 한 PR로 묶입니다. 병합하기 전에 아래를 확인하세요.
+
+- **CI가 통과해야 합니다.** lint, 서식, 타입체크, 테스트, 빌드, 감사, Docker 빌드가 모두 성공해야 병합합니다.
+- **메이저 버전 상승은 변경 내용을 읽어 봅니다.** CI가 통과해도 동작이 달라질 수 있습니다.
+- **Node 메이저 버전(`node:24-slim` → 26 등)은 바로 병합하지 않습니다.** 배포 런타임이 바뀌므로 `node:sqlite`가 새 버전에서도 동작하는지 로컬에서 확인하고, Dockerfile, CI(`setup-node`), `package.json`의 `engines`, README의 Node 버전을 함께 올립니다.
+- **ESLint와 `@eslint/js`는 9 버전대에 고정되어 있어 메이저 업데이트 PR이 오지 않습니다.** 접근성 검사(`eslint-plugin-jsx-a11y`)가 ESLint 10을 아직 지원하지 않아, 올리면 `npm ci`가 실패합니다. 지원되면 `dependabot.yml`의 무시 규칙을 지우고 함께 올립니다.
+- 필요 없는 PR은 닫으면 됩니다. 같은 버전의 PR은 다시 열리지 않습니다.
+
 ## 로그
 
 API 요청이 끝나면 `<요청 ID> <메서드> <경로> <상태 코드> <걸린 시간>ms [user=<번호>]` 한 줄을 남기고, 모든 응답에 `X-Request-Id` 헤더를 붙입니다. 서버 오류 로그에도 같은 ID가 들어가므로 사용자가 겪은 문제를 찾아갈 수 있습니다. 쿼리 문자열·본문·쿠키는 기록하지 않습니다. `LOG_REQUESTS=0`으로 끌 수 있습니다.
