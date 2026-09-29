@@ -30,10 +30,26 @@ describe('요청 제한', () => {
     const c = t.client();
     const statuses: number[] = [];
     for (let i = 0; i < 12; i++) {
-      const res = await c.request('POST', '/api/auth/signup', { email: `u${i}@example.com`, password: 'password-1234', nickname: '테스터' });
+      const res = await c.request('POST', '/api/auth/signup', {
+        email: `u${i}@example.com`,
+        password: 'password-1234',
+        nickname: '테스터',
+      });
       statuses.push(res.status);
     }
     assert.equal(statuses.filter((s) => s === 201).length, 10);
     assert.deepEqual(statuses.slice(10), [429, 429]);
+  });
+
+  it('게임 조회는 분당 60회로 제한된다 (외부 API 호출 증폭 방지)', async () => {
+    const c = t.client();
+    const statuses: number[] = [];
+    for (let i = 0; i < 65; i++) statuses.push((await c.request('GET', '/api/games/1/store-info')).status);
+
+    assert.equal(statuses.filter((s) => s === 200).length, 60);
+    assert.equal(statuses.filter((s) => s === 429).length, 5);
+    assert.match((await c.request('GET', '/api/games/1/store-info')).json.error, /너무 자주/);
+    // 게임 조회 제한이 인증 등 다른 API에는 영향을 주지 않는다
+    assert.equal((await c.request('GET', '/api/auth/me')).status, 200);
   });
 });

@@ -1,4 +1,4 @@
-import { RAWG_API_KEY } from '../config.ts';
+import { RAWG_API_KEY, RAWG_MAX_CALLS_PER_MINUTE } from '../config.ts';
 import type { Game } from '../types.ts';
 import { HttpError } from '../utils/http.ts';
 import { isAdultGame } from './contentFilter.ts';
@@ -9,7 +9,8 @@ const BASE_URL = 'https://api.rawg.io/api';
 const PAGE_SIZE = 40;
 /** 한 번에 가져올 최대 페이지 수. 인기순 정렬이라 상위 게임 위주로 채워진다. */
 const MAX_PAGES = 3;
-const TIMEOUT_MS = 10_000;
+/** 화면(15초)이 먼저 포기하지 않도록 첫 페이지 → 나머지 페이지(병렬) 두 번의 대기가 합쳐도 그 안에 끝나게 잡는다 */
+const TIMEOUT_MS = 6_000;
 
 interface RawgGame {
   id: number;
@@ -31,12 +32,28 @@ interface RawgListResponse {
   results: RawgGame[];
 }
 
-/** RAWG 호출 실패. message는 클라이언트에 그대로 보여줄 수 있는 문장이다. */
+/** RAWG 호출 실패. message는 클라이언트에 그대로 보여줄 수 있는 문장이고, 내부 사정은 detail에만 담는다. */
 export class RawgApiError extends HttpError {
-  constructor(message: string, status = 502) {
-    super(status, message);
+  constructor(message: string, status = 502, detail?: string) {
+    super(status, message, detail);
     this.name = 'RawgApiError';
   }
+}
+
+/** 최근 1분 동안 RAWG로 요청을 보낸 시각. 서버 전체의 호출량을 세어 무료 요금제 한도가 한꺼번에 소진되는 것을 막는다. */
+const recentCalls: number[] = [];
+
+function takeUpstreamSlot(): void {
+  const now = Date.now();
+  while (recentCalls.length > 0 && recentCalls[0]! <= now - 60_000) recentCalls.shift();
+  if (recentCalls.length >= RAWG_MAX_CALLS_PER_MINUTE) {
+    throw new RawgApiError(
+      '요청이 몰려 잠시 후 다시 시도해 주세요.',
+      503,
+      `RAWG 호출 상한(분당 ${RAWG_MAX_CALLS_PER_MINUTE}회)에 도달했습니다. RAWG_MAX_CALLS_PER_MINUTE로 조정할 수 있습니다.`,
+    );
+  }
+  recentCalls.push(now);
 }
 
 /**
@@ -62,19 +79,37 @@ function normalize(game: RawgGame): Game {
 }
 
 async function rawgGet<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+  takeUpstreamSlot();
   const query = new URLSearchParams({ key: RAWG_API_KEY, ...params });
   let res: Response;
   try {
     res = await fetch(`${BASE_URL}${path}?${query}`, { signal: AbortSignal.timeout(TIMEOUT_MS) });
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {
-      throw new RawgApiError('RAWG 응답 시간이 초과되었습니다.', 504);
+      throw new RawgApiError(
+        'RAWG 응답 시간이 초과되었습니다.',
+        504,
+        `RAWG가 ${TIMEOUT_MS / 1000}초 안에 응답하지 않았습니다.`,
+      );
     }
-    throw new RawgApiError('RAWG 서버에 연결할 수 없습니다.');
+    const cause = err instanceof Error ? ((err.cause as Error | undefined)?.message ?? err.message) : String(err);
+    throw new RawgApiError('RAWG 서버에 연결할 수 없습니다.', 502, `RAWG 연결 실패: ${cause}`);
   }
 
   if (res.status === 401) {
-    throw new RawgApiError('RAWG API 키가 올바르지 않습니다. backend/.env의 RAWG_API_KEY를 확인하세요.');
+    // 키 설정 문제는 사용자가 고칠 수 없으므로 화면에는 일반 안내만 보내고, 원인은 서버 로그에 남긴다
+    throw new RawgApiError(
+      '게임 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      502,
+      'RAWG API 키가 올바르지 않습니다. backend/.env의 RAWG_API_KEY를 확인하세요.',
+    );
+  }
+  if (res.status === 429) {
+    throw new RawgApiError(
+      '요청이 몰려 잠시 후 다시 시도해 주세요.',
+      503,
+      'RAWG가 요청 한도 초과(429)를 응답했습니다. 요금제 한도를 확인하세요.',
+    );
   }
   if (res.status === 404) {
     throw new RawgApiError('게임을 찾을 수 없습니다.', 404);
@@ -85,24 +120,52 @@ async function rawgGet<T>(path: string, params: Record<string, string> = {}): Pr
   return (await res.json()) as T;
 }
 
-/** start ~ end(YYYY-MM-DD, 양 끝 포함) 기간에 출시되는 게임을 인기순으로 가져온다. */
-export async function fetchReleases(start: string, end: string): Promise<Game[]> {
-  const games: Game[] = [];
+export interface ReleasesResult {
+  games: Game[];
+  /** 일부 페이지를 가져오지 못해 목록이 완전하지 않다 */
+  partial: boolean;
+}
 
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const data = await rawgGet<RawgListResponse>('/games', {
+/**
+ * start ~ end(YYYY-MM-DD, 양 끝 포함) 기간에 출시되는 게임을 인기순으로 가져온다.
+ * 첫 페이지로 전체 개수를 알아낸 뒤 나머지 페이지는 동시에 요청한다. 첫 페이지가 실패하면 오류지만,
+ * 나머지 페이지가 실패했을 때는 받은 것만으로 응답하고 partial로 표시한다.
+ */
+export async function fetchReleases(start: string, end: string): Promise<ReleasesResult> {
+  const fetchPage = (page: number) =>
+    rawgGet<RawgListResponse>('/games', {
       dates: `${start},${end}`,
       ordering: '-added',
       page_size: String(PAGE_SIZE),
       page: String(page),
     });
-    for (const raw of data.results) {
-      if (raw.released && !isAdultGame(raw)) games.push(normalize(raw));
+
+  const first = await fetchPage(1);
+  const pageCount = first.next ? Math.min(MAX_PAGES, Math.max(2, Math.ceil(first.count / PAGE_SIZE))) : 1;
+  const rest = await Promise.allSettled(Array.from({ length: pageCount - 1 }, (_, i) => fetchPage(i + 2)));
+
+  const pages = [first];
+  let partial = false;
+  for (const result of rest) {
+    if (result.status === 'fulfilled') {
+      pages.push(result.value);
+    } else {
+      partial = true;
+      const reason = result.reason as unknown;
+      console.warn(
+        `RAWG 일부 페이지를 가져오지 못했습니다 (${start}~${end}):`,
+        reason instanceof HttpError ? (reason.detail ?? reason.message) : reason,
+      );
     }
-    if (!data.next) break;
   }
 
-  return dedupeGames(games);
+  const games: Game[] = [];
+  for (const page of pages) {
+    for (const raw of page.results) {
+      if (raw.released && !isAdultGame(raw)) games.push(normalize(raw));
+    }
+  }
+  return { games: dedupeGames(games), partial };
 }
 
 export interface RawgStoreLink {
@@ -137,6 +200,9 @@ export async function searchGameByName(name: string, year?: number): Promise<Gam
   const exact = data.results.filter((g) => g.name.toLowerCase() === wanted);
   const sameYear = (g: RawgGame) => year !== undefined && g.released?.startsWith(String(year));
   const match =
-    exact.find(sameYear) ?? data.results.find((g) => sameYear(g) && g.name.toLowerCase().startsWith(wanted)) ?? exact[0] ?? data.results[0];
+    exact.find(sameYear) ??
+    data.results.find((g) => sameYear(g) && g.name.toLowerCase().startsWith(wanted)) ??
+    exact[0] ??
+    data.results[0];
   return match ? normalize(match) : null;
 }

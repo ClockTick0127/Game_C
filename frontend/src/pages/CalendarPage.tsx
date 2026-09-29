@@ -16,7 +16,7 @@ export function CalendarPage() {
   const [{ year, month }, setCursor] = useState(currentMonth);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
-  const { games, gamesByDate, totalCount, isSample, loading, error, reload } = useMonthlyReleases(year, month);
+  const { games, gamesByDate, totalCount, isSample, partial, loading, error, reload } = useMonthlyReleases(year, month);
 
   const changeMonth = (next: { year: number; month: number }) => {
     setCursor(next);
@@ -67,6 +67,15 @@ export function CalendarPage() {
           onToday={() => changeMonth(currentMonth())}
           onJump={(y, m) => changeMonth({ year: y, month: m })}
         />
+
+        {partial && (
+          <div className="banner">
+            일부 출시 정보를 불러오지 못해 목록이 완전하지 않을 수 있습니다.
+            <button type="button" onClick={reload}>
+              다시 시도
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="banner error">

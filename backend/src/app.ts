@@ -54,8 +54,12 @@ if (SERVE_FRONTEND) {
 }
 
 // Express 5는 async 핸들러에서 던진 에러도 여기로 전달한다
-const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (err instanceof HttpError) {
+    // 외부 API 장애·키 만료 같은 서버 쪽 문제는 응답만 하고 넘기면 운영자가 알 수 없다
+    if (err.status >= 500) {
+      console.error(`[${err.status}] ${req.method} ${req.path} — ${err.detail ?? err.message}`);
+    }
     res.status(err.status).json({ error: err.message });
     return;
   }

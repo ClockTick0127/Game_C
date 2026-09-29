@@ -7,10 +7,15 @@ import { join } from 'node:path';
  * 임시 DB로 서버를 띄운다. db.ts가 import 시점에 DB_PATH를 읽으므로 환경변수를 먼저 설정하고 동적 import 한다.
  * 테스트 파일마다 별도 프로세스로 실행되므로 DB와 요청 제한 상태가 파일 단위로 분리된다.
  */
-export async function startTestServer({ rateLimit = false } = {}) {
+export async function startTestServer({
+  rateLimit = false,
+  rawgKey = '',
+  rawgMaxCallsPerMinute = 10_000,
+} = {}) {
+  process.env.RAWG_MAX_CALLS_PER_MINUTE = String(rawgMaxCallsPerMinute);
   process.env.RATE_LIMIT_DISABLED = rateLimit ? '0' : '1';
   process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), 'game-calendar-test-')), 'test.db');
-  process.env.RAWG_API_KEY = '';
+  process.env.RAWG_API_KEY = rawgKey;
 
   const { app } = await import('../src/app.ts');
   const { db } = await import('../src/db.ts');

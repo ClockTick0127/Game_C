@@ -62,4 +62,6 @@ export interface ReleasesResponse {
   games: Game[];
   /** true면 백엔드에 API 키가 없어 샘플 데이터로 응답한 것 */
   sample: boolean;
+  /** true면 일부 페이지를 가져오지 못해 목록이 완전하지 않다 */
+  partial?: boolean;
 }

@@ -1,6 +1,7 @@
 import type { StoreInfo, StoreLink } from '../types.ts';
 import { createPromiseCache } from '../utils/cache.ts';
-import { fetchGameBasics, fetchStoreLinks } from './rawg.ts';
+import { HttpError } from '../utils/http.ts';
+import { fetchGameBasics, fetchStoreLinks, RawgApiError } from './rawg.ts';
 import { IS_SAMPLE_MODE } from './releases.ts';
 import { fetchSteamMetacritic, fetchSteamReviews, searchSteamAppId, steamAppId } from './steam.ts';
 
@@ -58,8 +59,40 @@ async function loadStoreInfo(gameId: number): Promise<StoreInfo> {
 /** 평가는 자주 바뀌지 않으므로 6시간 캐시 */
 const cachedStoreInfo = createPromiseCache<number, StoreInfo>({ ttlMs: 6 * 60 * 60 * 1000, maxEntries: 1000 });
 
+/**
+ * RAWG에 없는 게임 번호. 실패는 캐시하지 않으므로, 없는 번호를 반복해서 조회하면 매번 RAWG를 부르게 된다.
+ * 그래서 없다고 확인된 번호는 별도 목록에 잠시 기억한다. (정상 캐시와 섞으면 없는 번호를 대량으로 조회해 캐시를 밀어낼 수 있다)
+ */
+const MISSING_TTL_MS = 10 * 60 * 1000;
+const MAX_MISSING = 500;
+const missing = new Map<number, number>(); // 게임 번호 → 기억을 그만둘 시각
+
+function isKnownMissing(gameId: number): boolean {
+  const until = missing.get(gameId);
+  if (until === undefined) return false;
+  if (until <= Date.now()) {
+    missing.delete(gameId);
+    return false;
+  }
+  return true;
+}
+
+function rememberMissing(gameId: number): void {
+  if (missing.size >= MAX_MISSING) missing.delete(missing.keys().next().value!);
+  missing.set(gameId, Date.now() + MISSING_TTL_MS);
+}
+
+const NOT_FOUND = '게임을 찾을 수 없습니다.';
+
 export async function getStoreInfo(gameId: number): Promise<StoreInfo> {
   // 샘플 게임은 RAWG에 없는 가상의 게임이다
   if (IS_SAMPLE_MODE) return { stores: [], steam: null, metacritic: null };
-  return cachedStoreInfo(gameId, () => loadStoreInfo(gameId));
+  if (isKnownMissing(gameId)) throw new HttpError(404, NOT_FOUND);
+
+  try {
+    return await cachedStoreInfo(gameId, () => loadStoreInfo(gameId));
+  } catch (err) {
+    if (err instanceof RawgApiError && err.status === 404) rememberMissing(gameId);
+    throw err;
+  }
 }

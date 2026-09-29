@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { gamesLimiter } from '../middleware/rateLimit.ts';
 import { IS_SAMPLE_MODE, getReleases } from '../services/releases.ts';
 import { searchGameByName } from '../services/rawg.ts';
 import type { Game } from '../types.ts';
@@ -10,6 +11,7 @@ import { daysBetween, isDateKey } from '../utils/date.ts';
 const MAX_RANGE_DAYS = 62;
 
 export const gamesRouter = Router();
+gamesRouter.use(gamesLimiter);
 
 /** 이름 검색 결과 캐시 (24시간). 수상작처럼 같은 이름을 반복해서 찾는 용도라 길게 잡는다. */
 const cachedSearch = createPromiseCache<string, Game | null>({ ttlMs: 24 * 60 * 60 * 1000, maxEntries: 200 });
@@ -36,7 +38,8 @@ gamesRouter.get('/', async (req, res) => {
 
 /** GET /api/games/:id/store-info — 스토어 바로가기 링크와 Steam 사용자 평가 */
 gamesRouter.get('/:id/store-info', async (req, res) => {
-  const id = Number(req.params.id);
+  // "1e3", "0x10" 같은 값을 Number()가 숫자로 받아들이지 않도록 자릿수만 허용한다
+  const id = /^\d{1,15}$/.test(req.params.id) ? Number(req.params.id) : 0;
   if (!Number.isSafeInteger(id) || id <= 0) {
     res.status(400).json({ error: '게임 ID가 올바르지 않습니다.' });
     return;
