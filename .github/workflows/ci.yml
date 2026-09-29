@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - name: 이미지 빌드
+        run: docker build -t game-calendar .
+      - name: 컨테이너 기동 확인
+        run: |
+          docker run -d --name app -p 4000:4000 game-calendar
+          for i in $(seq 20); do
+            curl -fs http://localhost:4000/api/health && exit 0
+            sleep 1
+          done
+          docker logs app
+          exit 1

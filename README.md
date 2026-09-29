@@ -103,3 +103,16 @@ nginx 등 리버스 프록시 뒤에서 실행한다면 `TRUST_PROXY=1`을 설�
 npm test    # 백엔드 API 테스트 (임시 SQLite DB를 만들어 실제 HTTP로 검증)
 ```
 
+## Docker
+
+```bash
+docker build -t game-calendar .
+docker run -d -p 4000:4000 -v game-calendar-data:/data -e RAWG_API_KEY=발급받은키 game-calendar
+```
+
+계정 · 관심 게임 데이터(SQLite)는 `/data` 볼륨에 저장되므로 볼륨을 지정해야 컨테이너를 다시 만들어도 유지됩니다.
+프록시(nginx 등) 뒤에 둘 때는 `-e TRUST_PROXY=1`을 추가하세요. HTTPS 없이 접속하면 로그인 쿠키(`secure`)가 저장되지 않으므로, 운영에서는 HTTPS 프록시 뒤에서 사용하세요.
+
+## CI
+
+GitHub Actions(`.github/workflows/ci.yml`)가 push · PR마다 타입체크 → 테스트 → 빌드 → Docker 이미지 빌드 및 기동 확인을 실행합니다.

@@ -1,6 +1,9 @@
 {
   "name": "game-calendar",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "version": "0.1.0",
   "description": "게임 출시 일정을 캘린더로 보여주는 웹사이트",
   "workspaces": [

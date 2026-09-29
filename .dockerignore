@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+**/dist
+backend/data
+backend/test
+.git
+.github
+.claude
+.env
+**/.env
+*.log
