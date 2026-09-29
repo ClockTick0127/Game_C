@@ -22,7 +22,10 @@ beforeEach(() => {
   vi.mocked(authApi.fetchMe).mockResolvedValue({ user: null });
   vi.mocked(meApi.fetchFavorites).mockResolvedValue({ games: [] });
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  localStorage.clear(); // 보기 방식 선택이 다음 테스트로 넘어가지 않게
+});
 
 const june = (day: number) => `${year}-06-${String(day).padStart(2, '0')}`;
 const game = (id: number, name: string, day: number, overrides: Partial<Game> = {}) =>
@@ -267,5 +270,92 @@ describe('CalendarPage — 검색과 필터', () => {
 
     await waitFor(() => expect(grid().queryByRole('button', { name: /엘든 링/ })).not.toBeInTheDocument());
     expect(grid().getByRole('button', { name: /포르자/ })).toBeInTheDocument();
+  });
+});
+
+describe('CalendarPage — 주간·목록 보기', () => {
+  /** 오른쪽 패널의 인기 순위에도 같은 게임이 있으므로 캘린더 본문 안에서만 찾는다 */
+  const main = () => within(document.querySelector<HTMLElement>('.calendar-main')!);
+  const clickView = async (name: string) => {
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name }));
+    return user;
+  };
+
+  it('주간 보기는 오늘이 속한 주의 게임만 모두 보여 주고, 주 단위로 이동한다', async () => {
+    await renderCalendar([game(1, '이번 주 게임', 15), game(2, '다음 주 게임', 22), game(3, '월초 게임', 1)]);
+    const user = await clickView('주간');
+
+    expect(screen.getByRole('button', { name: '이전 주' })).toBeInTheDocument();
+    expect(main().getByRole('button', { name: /이번 주 게임/ })).toBeInTheDocument();
+    expect(main().queryByRole('button', { name: /다음 주 게임/ })).not.toBeInTheDocument();
+    expect(main().queryByRole('button', { name: /월초 게임/ })).not.toBeInTheDocument();
+    expect(document.querySelector('.cal-grid')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: '다음 주' }));
+    expect(main().getByRole('button', { name: /다음 주 게임/ })).toBeInTheDocument();
+    expect(main().queryByRole('button', { name: /이번 주 게임/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '오늘' }));
+    expect(main().getByRole('button', { name: /이번 주 게임/ })).toBeInTheDocument();
+  });
+
+  it('주가 다음 달로 넘어가면 그 달 정보도 불러온다', async () => {
+    await renderCalendar([game(1, '게임', 15)]);
+    const user = await clickView('주간');
+    for (let i = 0; i < 3; i++) await user.click(screen.getByRole('button', { name: '다음 주' }));
+
+    expect(gamesApi.fetchReleases).toHaveBeenCalledWith(`${year}-07-01`, `${year}-07-31`, expect.any(AbortSignal));
+  });
+
+  it('주간 보기에서 날짜를 누르면 그날의 목록이 패널에 열린다', async () => {
+    await renderCalendar([game(1, '가 게임', 15), game(2, '나 게임', 15)]);
+    const user = await clickView('주간');
+
+    await user.click(screen.getByRole('button', { name: /15일 .*게임 2개/ }));
+    expect(panel().getByRole('button', { name: /가 게임/ })).toBeInTheDocument();
+    expect(panel().getByRole('button', { name: /나 게임/ })).toBeInTheDocument();
+  });
+
+  it('목록 보기는 출시일 순으로 날짜별로 묶어 보여 주고, 게임을 누르면 상세가 열린다', async () => {
+    await renderCalendar([game(1, '늦은 게임', 20), game(2, '이른 게임', 3), game(3, '같은 날 게임', 3)]);
+    const user = await clickView('목록');
+
+    const headings = within(document.querySelector<HTMLElement>('.list-view')!)
+      .getAllByRole('heading', { level: 3 })
+      .map((h) => h.textContent);
+    expect(headings[0]).toContain('6월 3일');
+    expect(headings[1]).toContain('6월 20일');
+    const names = within(document.querySelector<HTMLElement>('.list-view')!)
+      .getAllByRole('button')
+      .map((b) => b.textContent);
+    expect(names[0]).toContain('이른 게임');
+    expect(names[2]).toContain('늦은 게임');
+
+    await user.click(main().getByRole('button', { name: /늦은 게임/ }));
+    expect(panel().getByRole('heading', { name: '늦은 게임' })).toBeInTheDocument();
+  });
+
+  it('출시 정보가 없는 달의 목록 보기는 안내 문구를 보여 준다', async () => {
+    await renderCalendar([]);
+    await clickView('목록');
+    expect(screen.getByText('이 달에는 표시할 출시 정보가 없습니다.')).toBeInTheDocument();
+  });
+
+  it('고른 보기 방식은 기억해 둔다', async () => {
+    await renderCalendar([game(1, '게임', 10)]);
+    await clickView('목록');
+    expect(localStorage.getItem('calendarView')).toBe('list');
+  });
+
+  it('필터는 목록 보기에서도 적용된다', async () => {
+    await renderCalendar([
+      game(1, '엘든 링', 15, { platforms: ['PC'] }),
+      game(2, '포르자', 15, { platforms: ['Xbox'] }),
+    ]);
+    const user = await clickView('목록');
+    await user.selectOptions(screen.getByRole('combobox', { name: '플랫폼' }), 'Xbox');
+    expect(main().queryByRole('button', { name: /엘든 링/ })).not.toBeInTheDocument();
+    expect(main().getByRole('button', { name: /포르자/ })).toBeInTheDocument();
   });
 });

@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
+import { VIEW_LABELS, type CalendarView } from '../utils/calendarView';
 
 interface Props {
   year: number;
   month: number;
   totalCount: number;
   loading: boolean;
+  view: CalendarView;
+  /** 이동 단위 — 월간·목록은 달, 주간은 주 */
+  unit: '달' | '주';
+  /** 주간 보기에서 보고 있는 기간 ("9월 13일 – 19일") */
+  rangeLabel?: string;
+  onViewChange: (view: CalendarView) => void;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
@@ -14,7 +21,20 @@ interface Props {
 const MIN_YEAR = 1970;
 const MAX_YEAR = 2100;
 
-export function CalendarHeader({ year, month, totalCount, loading, onPrev, onNext, onToday, onJump }: Props) {
+export function CalendarHeader({
+  year,
+  month,
+  totalCount,
+  loading,
+  view,
+  unit,
+  rangeLabel,
+  onViewChange,
+  onPrev,
+  onNext,
+  onToday,
+  onJump,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [yearDraft, setYearDraft] = useState(String(year));
   const [monthDraft, setMonthDraft] = useState(month);
@@ -131,16 +151,24 @@ export function CalendarHeader({ year, month, totalCount, loading, onPrev, onNex
             </div>
           )}
         </div>
+        {rangeLabel && <span className="cal-range">{rangeLabel}</span>}
         <span className="cal-count">{loading ? '불러오는 중…' : `출시 예정·출시작 ${totalCount}개`}</span>
       </div>
       <nav className="cal-nav">
-        <button type="button" onClick={onPrev} aria-label="이전 달">
+        <div className="view-switch" role="group" aria-label="보기 방식">
+          {(Object.keys(VIEW_LABELS) as CalendarView[]).map((v) => (
+            <button key={v} type="button" aria-pressed={v === view} onClick={() => onViewChange(v)}>
+              {VIEW_LABELS[v]}
+            </button>
+          ))}
+        </div>
+        <button type="button" onClick={onPrev} aria-label={`이전 ${unit}`}>
           ‹
         </button>
         <button type="button" onClick={onToday}>
           오늘
         </button>
-        <button type="button" onClick={onNext} aria-label="다음 달">
+        <button type="button" onClick={onNext} aria-label={`다음 ${unit}`}>
           ›
         </button>
       </nav>

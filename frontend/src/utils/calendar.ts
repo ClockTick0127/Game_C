@@ -50,3 +50,21 @@ export function daysUntil(key: string): number {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.round((parseDateKey(key).getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
 }
+
+/** date가 속한 주(일요일 시작)의 7일. 월간 그리드와 같은 기준이다. */
+export function buildWeekDays(date: Date): CalendarDay[] {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
+  return Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    return { date: day, key: toDateKey(day), inMonth: true };
+  });
+}
+
+/** "9월 13일 – 19일", 달이 걸치면 "8월 30일 – 9월 5일" */
+export function formatWeekRange(days: CalendarDay[]): string {
+  const first = days[0]!.date;
+  const last = days[days.length - 1]!.date;
+  const end =
+    first.getMonth() === last.getMonth() ? `${last.getDate()}일` : `${last.getMonth() + 1}월 ${last.getDate()}일`;
+  return `${first.getMonth() + 1}월 ${first.getDate()}일 – ${end}`;
+}

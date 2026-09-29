@@ -7,16 +7,20 @@ import { getMonthRange } from '../utils/calendar';
 const cache = new Map<string, ReleasesResponse>();
 
 type State =
-  { status: 'loading' } | { status: 'success'; data: ReleasesResponse } | { status: 'error'; message: string };
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'success'; data: ReleasesResponse }
+  | { status: 'error'; message: string };
 
-export function useMonthlyReleases(year: number, month: number) {
+/** enabled가 false면 요청하지 않고 빈 결과를 돌려준다 (주간 보기에서 다음 달 데이터가 필요할 때만 쓰기 위한 스위치) */
+export function useMonthlyReleases(year: number, month: number, enabled = true) {
   const cacheKey = `${year}-${month}`;
   // 가장 최근에 서버에서 받은 결과. 어느 달의 것인지 함께 기억해, 달이 바뀐 직후에 이전 달 결과를 쓰지 않는다.
   const [fetched, setFetched] = useState<{ key: string; state: State } | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    if (cache.has(cacheKey)) return; // 캐시에 있으면 아래에서 렌더할 때 바로 읽는다
+    if (!enabled || cache.has(cacheKey)) return; // 캐시에 있으면 아래에서 렌더할 때 바로 읽는다
 
     const controller = new AbortController();
     const { start, end } = getMonthRange(year, month);
@@ -34,15 +38,17 @@ export function useMonthlyReleases(year: number, month: number) {
       });
 
     return () => controller.abort();
-  }, [year, month, cacheKey, reloadToken]);
+  }, [year, month, cacheKey, reloadToken, enabled]);
 
   // 캐시 → 방금 받은 결과(같은 달일 때만) → 불러오는 중, 순서로 화면에 보여줄 상태를 정한다
   const cached = cache.get(cacheKey);
-  const state: State = cached
-    ? { status: 'success', data: cached }
-    : fetched?.key === cacheKey
-      ? fetched.state
-      : { status: 'loading' };
+  const state: State = !enabled
+    ? { status: 'idle' }
+    : cached
+      ? { status: 'success', data: cached }
+      : fetched?.key === cacheKey
+        ? fetched.state
+        : { status: 'loading' };
   const data = state.status === 'success' ? state.data : null;
 
   const gamesByDate = useMemo(() => {

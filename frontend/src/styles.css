@@ -326,6 +326,208 @@ a {
   background: var(--surface-2);
 }
 
+/* 보기 방식(월간·주간·목록) 전환 */
+.cal-nav .view-switch {
+  display: flex;
+  margin-right: 8px;
+}
+
+.cal-nav .view-switch button {
+  min-width: 0;
+  border-radius: 0;
+  font-size: 14px;
+}
+
+.cal-nav .view-switch button + button {
+  margin-left: -1px;
+}
+
+.cal-nav .view-switch button:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.cal-nav .view-switch button:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.cal-nav .view-switch button[aria-pressed='true'] {
+  position: relative;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cal-range {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ---------- 주간 보기 ---------- */
+.week-view {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--border);
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 260px;
+  padding: 8px 6px;
+  background: var(--surface);
+}
+
+.week-day.selected {
+  background: var(--accent-soft);
+}
+
+.week-day-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 13px;
+}
+
+.week-day-head strong {
+  font-size: 16px;
+}
+
+.week-day-head:disabled {
+  cursor: default;
+}
+
+.week-day-head:not(:disabled):hover {
+  background: var(--surface-2);
+}
+
+.week-day.today .week-day-head {
+  background: var(--accent);
+  color: #fff;
+}
+
+.week-games {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.week-empty {
+  margin: 0;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ---------- 목록 보기 ---------- */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.list-day-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.list-today {
+  padding: 1px 8px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.list-games {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  text-align: left;
+}
+
+.list-item:hover {
+  background: var(--surface-2);
+}
+
+.list-item.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.list-star {
+  color: var(--star);
+}
+
+.list-empty {
+  margin: 24px 0;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  /* 주간 보기는 좁은 화면에서 요일이 세로로 쌓인다 */
+  .week-view {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .week-day {
+    min-height: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .week-day-head {
+    flex: none;
+    width: 64px;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .week-games {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .week-empty {
+    align-self: center;
+  }
+}
+
 /* ---------- 캘린더 그리드 ---------- */
 .cal-body {
   transition: opacity 0.15s;

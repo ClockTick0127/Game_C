@@ -9,6 +9,9 @@ function renderHeader(overrides: Partial<React.ComponentProps<typeof CalendarHea
     month: 8,
     totalCount: 12,
     loading: false,
+    view: 'month' as const,
+    unit: '달' as const,
+    onViewChange: vi.fn(),
     onPrev: vi.fn(),
     onNext: vi.fn(),
     onToday: vi.fn(),
@@ -18,6 +21,25 @@ function renderHeader(overrides: Partial<React.ComponentProps<typeof CalendarHea
   render(<CalendarHeader {...props} />);
   return props;
 }
+
+describe('CalendarHeader — 보기 방식', () => {
+  it('현재 보기를 눌린 상태로 표시하고, 다른 보기를 누르면 알린다', async () => {
+    const user = userEvent.setup();
+    const props = renderHeader({ view: 'week' });
+    expect(screen.getByRole('button', { name: '주간' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: '월간' })).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(screen.getByRole('button', { name: '목록' }));
+    expect(props.onViewChange).toHaveBeenCalledWith('list');
+  });
+
+  it('주간 보기에서는 이동 버튼이 주 단위이고 기간을 보여준다', () => {
+    renderHeader({ view: 'week', unit: '주', rangeLabel: '9월 13일 – 19일' });
+    expect(screen.getByRole('button', { name: '이전 주' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '다음 주' })).toBeInTheDocument();
+    expect(screen.getByText('9월 13일 – 19일')).toBeInTheDocument();
+  });
+});
 
 describe('CalendarHeader', () => {
   it('현재 달과 게임 수를 보여준다 (month는 0부터라 9월)', () => {
