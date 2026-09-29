@@ -1,5 +1,5 @@
 # ---- 1단계: 프론트엔드 빌드 ----
-FROM node:24-slim AS build
+FROM node:26-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/
@@ -9,7 +9,7 @@ COPY frontend frontend
 RUN npm run build
 
 # ---- 2단계: 실행 이미지 (운영 의존성 + 빌드 결과만) ----
-FROM node:24-slim
+FROM node:26-slim
 ENV NODE_ENV=production \
     API_PORT=4000 \
     DB_PATH=/data/app.db
