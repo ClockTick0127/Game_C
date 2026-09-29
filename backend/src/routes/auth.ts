@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { clearSessionCookie, startSession } from '../middleware/auth.ts';
+import { clearSessionCookie, currentUser, requireAuth, startSession } from '../middleware/auth.ts';
 import { loginLimiter, signupLimiter } from '../middleware/rateLimit.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
-import { deleteSession } from '../services/sessions.ts';
+import { deleteAllSessions, deleteSession } from '../services/sessions.ts';
 import { createUser, findUserRowByEmail, toUser } from '../services/users.ts';
 import { HttpError } from '../utils/http.ts';
 import { requireText, validateEmail, validateNickname, validatePassword } from '../utils/validate.ts';
@@ -41,6 +41,13 @@ authRouter.post('/login', loginLimiter, async (req, res) => {
 /** POST /api/auth/logout */
 authRouter.post('/logout', (req, res) => {
   if (req.sessionToken) deleteSession(req.sessionToken);
+  clearSessionCookie(res);
+  res.status(204).end();
+});
+
+/** POST /api/auth/logout-all — 이 기기를 포함해 모든 기기에서 로그아웃 */
+authRouter.post('/logout-all', requireAuth, (req, res) => {
+  deleteAllSessions(currentUser(req).id);
   clearSessionCookie(res);
   res.status(204).end();
 });

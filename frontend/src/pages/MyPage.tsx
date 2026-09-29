@@ -20,6 +20,7 @@ export function MyPage() {
       <ProfileSection user={user} />
       <FavoritesSection />
       <PasswordSection />
+      <SessionSection />
       <DeleteAccountSection />
     </div>
   );
@@ -217,6 +218,35 @@ function PasswordSection() {
           {saving ? '변경 중…' : '비밀번호 변경'}
         </button>
       </form>
+    </section>
+  );
+}
+
+function SessionSection() {
+  const { logoutAll } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClick = async () => {
+    if (!confirm('이 기기를 포함한 모든 기기에서 로그아웃합니다. 계속하시겠습니까?')) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await logoutAll();
+    } catch (err) {
+      setError(errorMessage(err));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="card">
+      <h2>로그인 관리</h2>
+      <p className="muted">다른 기기나 브라우저에 로그인되어 있다면 한 번에 모두 로그아웃할 수 있습니다.</p>
+      <button type="button" className="btn" onClick={handleClick} disabled={busy}>
+        {busy ? '처리 중…' : '모든 기기에서 로그아웃'}
+      </button>
+      {error && <p className="form-error">{error}</p>}
     </section>
   );
 }

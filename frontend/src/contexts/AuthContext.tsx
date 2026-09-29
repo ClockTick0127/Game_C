@@ -10,6 +10,8 @@ interface AuthValue {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, nickname: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** 모든 기기에서 로그아웃 */
+  logoutAll: () => Promise<void>;
   /** 프로필 수정·회원 탈퇴 후 화면의 사용자 정보를 갱신할 때 사용 */
   setUser: (user: User | null) => void;
 }
@@ -40,6 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signup: async (email, password, nickname) => setUser((await authApi.signup(email, password, nickname)).user),
     logout: async () => {
       await authApi.logout();
+      setUser(null);
+    },
+    logoutAll: async () => {
+      await authApi.logoutAll();
       setUser(null);
     },
     setUser,

@@ -16,6 +16,7 @@ const selectSessionUser = db.prepare(`
   WHERE sessions.token_hash = ? AND sessions.expires_at > ?
 `);
 const deleteByToken = db.prepare('DELETE FROM sessions WHERE token_hash = ?');
+const deleteAllByUser = db.prepare('DELETE FROM sessions WHERE user_id = ?');
 const deleteOthers = db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?');
 
 /** 새 세션을 만들고 쿠키에 넣을 토큰 원문을 돌려준다. */
@@ -39,6 +40,11 @@ export function findSessionUser(token: string): User | null {
 
 export function deleteSession(token: string): void {
   deleteByToken.run(hashToken(token));
+}
+
+/** 사용자의 모든 기기(현재 기기 포함)의 로그인을 해제한다. */
+export function deleteAllSessions(userId: number): void {
+  deleteAllByUser.run(userId);
 }
 
 /** 비밀번호 변경 시 현재 세션을 제외한 다른 기기의 로그인을 해제한다. */

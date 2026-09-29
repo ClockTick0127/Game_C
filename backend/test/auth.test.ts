@@ -216,3 +216,28 @@ describe('만료 세션 정리', () => {
     assert.equal(purgeExpiredSessions(), 0);
   });
 });
+
+describe('모든 기기에서 로그아웃', () => {
+  it('모든 기기의 세션을 지우고 다른 사용자는 건드리지 않는다', async () => {
+    const a1 = t.client();
+    await signup(a1, 'all-a@example.com');
+    const a2 = t.client();
+    await a2.request('POST', '/api/auth/login', { email: 'all-a@example.com', password: PASSWORD });
+    const other = t.client();
+    await signup(other, 'all-other@example.com');
+
+    assert.equal((await a1.request('POST', '/api/auth/logout-all')).status, 204);
+
+    assert.equal((await a1.request('GET', '/api/auth/me')).json.user, null);
+    assert.equal((await a2.request('GET', '/api/auth/me')).json.user, null);
+    assert.equal((await other.request('GET', '/api/auth/me')).json.user.email, 'all-other@example.com');
+
+    // 계정은 그대로라 다시 로그인할 수 있다
+    const again = await t.client().request('POST', '/api/auth/login', { email: 'all-a@example.com', password: PASSWORD });
+    assert.equal(again.status, 200);
+  });
+
+  it('로그인하지 않으면 401', async () => {
+    assert.equal((await t.client().request('POST', '/api/auth/logout-all')).status, 401);
+  });
+});
