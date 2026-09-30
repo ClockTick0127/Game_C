@@ -41,89 +41,6 @@
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
 }
 
-/* 라이트 테마: 직접 고른 경우와, 고르지 않았을 때 브라우저·OS 설정이 라이트인 경우. 값은 두 곳이 같아야 한다. */
-:root[data-theme='light'] {
-  --bg: #f4f5f9;
-  --surface: #ffffff;
-  --surface-2: #eceef5;
-  --surface-3: #e2e5ef;
-  --border: #d8dbe6;
-  --text: #1b1f2a;
-  --text-dim: #5d6478;
-  --accent: #6a4cf0;
-  --accent-soft: rgba(106, 76, 240, 0.12);
-  --sun: #d92d2d;
-  --sat: #1d6fd6;
-  --error: #d92d2d;
-  --error-soft: rgba(217, 45, 45, 0.1);
-  --error-line: rgba(217, 45, 45, 0.4);
-  --success: #15803d;
-  --tint: rgba(0, 0, 0, 0.07);
-  --skeleton: #dfe2ec;
-  --shadow-pop: rgba(20, 24, 40, 0.18);
-  --star: #b7791f;
-  --star-soft: rgba(183, 121, 31, 0.14);
-  --star-ring: rgba(183, 121, 31, 0.55);
-  --gold: #b7791f;
-  --steam-positive: #1a7fb5;
-  --steam-mixed: #96731f;
-  --steam-negative: #c2452b;
-  --store-epic: #2b2b2b;
-  --chip-bg: #e4defc;
-  --chip-line: #b9aef0;
-  --store-steam: #1a7fb5;
-  --store-gog: #8a2be2;
-  --store-ps: #1d4ed8;
-  --store-xbox: #2e7d1f;
-  --store-nintendo: #c4000f;
-  --meta-good: #3f9c1a;
-  --meta-mixed: #d99a00;
-  --meta-bad: #d92d2d;
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme]) {
-    --bg: #f4f5f9;
-    --surface: #ffffff;
-    --surface-2: #eceef5;
-    --surface-3: #e2e5ef;
-    --border: #d8dbe6;
-    --text: #1b1f2a;
-    --text-dim: #5d6478;
-    --accent: #6a4cf0;
-    --accent-soft: rgba(106, 76, 240, 0.12);
-    --sun: #d92d2d;
-    --sat: #1d6fd6;
-    --error: #d92d2d;
-    --error-soft: rgba(217, 45, 45, 0.1);
-    --error-line: rgba(217, 45, 45, 0.4);
-    --success: #15803d;
-    --tint: rgba(0, 0, 0, 0.07);
-    --skeleton: #dfe2ec;
-    --shadow-pop: rgba(20, 24, 40, 0.18);
-    --star: #b7791f;
-    --star-soft: rgba(183, 121, 31, 0.14);
-    --star-ring: rgba(183, 121, 31, 0.55);
-    --gold: #b7791f;
-    --steam-positive: #1a7fb5;
-    --steam-mixed: #96731f;
-    --steam-negative: #c2452b;
-    --store-epic: #2b2b2b;
-    --chip-bg: #e4defc;
-    --chip-line: #b9aef0;
-    --store-steam: #1a7fb5;
-    --store-gog: #8a2be2;
-    --store-ps: #1d4ed8;
-    --store-xbox: #2e7d1f;
-    --store-nintendo: #c4000f;
-    --meta-good: #3f9c1a;
-    --meta-mixed: #d99a00;
-    --meta-bad: #d92d2d;
-    color-scheme: light;
-  }
-}
-
 * {
   box-sizing: border-box;
 }
@@ -883,8 +800,8 @@ img.detail-hero {
 }
 
 .brand-logo {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
 }
 
 .topbar-nav {
@@ -903,9 +820,20 @@ img.detail-hero {
   text-decoration: none;
 }
 
-.nav-link:hover,
-.nav-link.active {
+.nav-link:hover {
   color: var(--text);
+}
+
+/* 현재 페이지: 배경·굵은 글씨·밑줄로 확실하게 구분 */
+.nav-link.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.btn.active {
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* ---------- 캘린더 검색·필터 ---------- */

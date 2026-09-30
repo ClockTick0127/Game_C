@@ -2,7 +2,6 @@ import { Link, NavLink, useNavigate } from 'react-router';
 import { errorMessage } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { ThemeToggle } from './ThemeToggle';
 
 export function NavBar() {
   const { user, loading, logout } = useAuth();
@@ -21,9 +20,8 @@ export function NavBar() {
 
   return (
     <header className="topbar">
-      <Link to="/" className="brand">
+      <Link to="/" className="brand" aria-label="게임 캘린더">
         <img src="/logo.svg" alt="" className="brand-logo" />
-        게임 캘린더
       </Link>
       <nav className="topbar-nav topbar-menu">
         <NavLink to="/" end className="nav-link">
@@ -33,7 +31,6 @@ export function NavBar() {
           역대 GOTY
         </NavLink>
       </nav>
-      <ThemeToggle />
       {/* 로그인 상태를 확인하는 동안에는 버튼이 깜빡이지 않도록 비워둔다 */}
       {!loading && (
         <nav className="topbar-nav">
