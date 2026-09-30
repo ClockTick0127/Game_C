@@ -407,7 +407,7 @@ export function LibraryPage() {
             </p>
           ) : (
             <ul className={classNames('stacks', editing && 'editing')} {...(editing ? libraryTarget : {})}>
-              {visibleLibrary.map((game, i) => (
+              {visibleLibrary.map((game) => (
                 <li
                   key={game.appId}
                   className={classNames(held === game.appId && 'is-held')}
@@ -415,7 +415,6 @@ export function LibraryPage() {
                 >
                   <BookSpine
                     game={game}
-                    number={i + 1}
                     editing={editing}
                     held={held === game.appId}
                     onPress={() => press(game, 'library')}

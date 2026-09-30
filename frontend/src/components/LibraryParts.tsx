@@ -54,14 +54,12 @@ export function GameCase({ game, editing, held, onPress, onFlip, onKeyDown }: Pa
 }
 
 interface SpineProps extends PartProps {
-  /** 서재에서 몇 번째 책인지 (1부터) */
-  number: number;
   /** 마우스를 올리거나 포커스가 갔을 때 그 책의 위치와 함께 알린다 (말풍선을 띄우는 데 쓴다). 벗어나면 null */
   onPeek: (peek: { game: SteamOwnedGame; rect: DOMRect } | null) => void;
 }
 
-/** 서재에 꽂힌 책 한 권. 등이 보이도록 세워져 있고, 위에는 작은 그림, 아래에는 번호가 있다 */
-export function BookSpine({ game, number, editing, held, onPress, onFlip, onKeyDown, onPeek }: SpineProps) {
+/** 서재에 꽂힌 책 한 권. 등이 보이도록 세워져 있고, 위에는 작은 그림, 아래는 비어 있다 */
+export function BookSpine({ game, editing, held, onPress, onFlip, onKeyDown, onPeek }: SpineProps) {
   const [iconFailed, setIconFailed] = useState(false);
   const style = { '--hue': spineHue(game.appId) } as CSSProperties;
   return (
@@ -89,9 +87,6 @@ export function BookSpine({ game, number, editing, held, onPress, onFlip, onKeyD
       </span>
       <span className="spine-title" aria-hidden="true">
         {game.name}
-      </span>
-      <span className="spine-no" aria-hidden="true">
-        {number}
       </span>
     </button>
   );
