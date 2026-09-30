@@ -4,7 +4,7 @@ export const VIEW_LABELS: Record<CalendarView, string> = { month: '월간', week
 
 const STORAGE_KEY = 'calendarView';
 
-/** 저장된 선택. 없으면 좁은 화면(모바일)은 목록, 그 외는 월간 */
+/** 저장된 선택. 없으면 좁은 화면(모바일)은 주간, 그 외는 월간 */
 export function readStoredView(): CalendarView {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
@@ -12,7 +12,7 @@ export function readStoredView(): CalendarView {
   } catch {
     // 저장소를 못 쓰는 환경이면 기본값
   }
-  return window.matchMedia?.('(max-width: 640px)').matches ? 'list' : 'month';
+  return window.matchMedia?.('(max-width: 640px)').matches ? 'week' : 'month';
 }
 
 export function storeView(view: CalendarView): void {
