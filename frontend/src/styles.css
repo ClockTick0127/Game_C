@@ -3059,3 +3059,74 @@ a.metascore:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 직접 추가한 게임의 이미지는 공식 아이콘이 아니라 가로로 긴 게임 화면이라, 늘리지 않고 가운데를 잘라 정사각형에 채운다 */
+.spine-icon.is-cover img {
+  object-fit: cover;
+}
+
+/* 최근 플레이: 최근 2주에 플레이한 게임 */
+.recent {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.recent-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 460 / 215;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border, #2a2f3d);
+  border-radius: 8px;
+  background: #111;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.recent-card:hover,
+.recent-card:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+}
+
+.recent-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recent-caption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 24px 10px 8px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.9));
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.recent-caption strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-caption span {
+  color: #cfd3df;
+}

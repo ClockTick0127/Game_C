@@ -154,8 +154,8 @@ meRouter.put('/library-order', express.json({ limit: '300kb' }), (req, res) => {
 // --- 내 서재에 직접 추가한 게임 ---
 
 /** GET /api/me/library-games — 직접 추가한 게임 (추가한 순서) */
-meRouter.get('/library-games', (req, res) => {
-  res.json({ games: listCustomGames(currentUser(req).id) });
+meRouter.get('/library-games', async (req, res) => {
+  res.json({ games: await listCustomGames(currentUser(req).id) });
 });
 
 /** GET /api/me/library-games/search?q=... — 추가할 게임 검색 (RAWG) */

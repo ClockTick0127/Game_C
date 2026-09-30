@@ -1,5 +1,6 @@
 import { db } from '../db.ts';
 import { HttpError } from '../utils/http.ts';
+import { searchSteamAppId } from './steam.ts';
 
 /** 한 계정이 직접 추가할 수 있는 게임 수 */
 export const MAX_CUSTOM_GAMES = 500;
@@ -12,8 +13,16 @@ export interface CustomGame {
   image: string | null;
 }
 
+/** 서재에 내려 주는 모양. Steam에도 있는 게임이면 Steam 공식 이미지를 쓰도록 앱 번호를 함께 준다 */
+export interface CustomGameWithSteam extends CustomGame {
+  steamAppId: number | null;
+}
+
 const selectAll = db.prepare(
-  'SELECT game_id, name, image FROM custom_library_games WHERE user_id = ? ORDER BY added_at',
+  'SELECT game_id, name, image, steam_app_id, steam_checked FROM custom_library_games WHERE user_id = ? ORDER BY added_at',
+);
+const saveSteam = db.prepare(
+  'UPDATE custom_library_games SET steam_app_id = ?, steam_checked = 1 WHERE user_id = ? AND game_id = ?',
 );
 const countStmt = db.prepare('SELECT COUNT(*) AS count FROM custom_library_games WHERE user_id = ?');
 const existsStmt = db.prepare('SELECT 1 FROM custom_library_games WHERE user_id = ? AND game_id = ?');
@@ -23,12 +32,30 @@ const upsert = db.prepare(`
 `);
 const deleteStmt = db.prepare('DELETE FROM custom_library_games WHERE user_id = ? AND game_id = ?');
 
-export function listCustomGames(userId: number): CustomGame[] {
-  return (selectAll.all(userId) as { game_id: number; name: string; image: string | null }[]).map((r) => ({
-    id: r.game_id,
-    name: r.name,
-    image: r.image,
-  }));
+interface Row {
+  game_id: number;
+  name: string;
+  image: string | null;
+  steam_app_id: number | null;
+  steam_checked: number;
+}
+
+/**
+ * 직접 추가한 게임 목록. 아직 Steam 앱 번호를 찾아 보지 않은 게임(예전에 추가했거나 조회에 실패한 게임)은 이름으로 찾아 채운다.
+ * Steam 조회는 부가 기능이라 실패해도 목록은 돌려주고, 못 찾으면 null로 두어 RAWG 이미지를 쓴다.
+ */
+export async function listCustomGames(userId: number): Promise<CustomGameWithSteam[]> {
+  const rows = selectAll.all(userId) as unknown as Row[];
+  return Promise.all(
+    rows.map(async (r) => {
+      let steamAppId = r.steam_app_id;
+      if (!r.steam_checked) {
+        steamAppId = await searchSteamAppId(r.name);
+        saveSteam.run(steamAppId, userId, r.game_id);
+      }
+      return { id: r.game_id, name: r.name, image: r.image, steamAppId };
+    }),
+  );
 }
 
 /** 이미 추가한 게임이면 저장된 정보만 갱신한다 */

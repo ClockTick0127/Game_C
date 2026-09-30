@@ -1,13 +1,25 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
+import { installFakeFetch, json } from './fakeExternal.ts';
 import { startTestServer } from './helpers.ts';
 
 let t: Awaited<ReturnType<typeof startTestServer>>;
 
+let fake: ReturnType<typeof installFakeFetch>;
+
 before(async () => {
   t = await startTestServer();
+  // Steam 스토어 검색: 이름이 정확히 같은 앱만 인정한다
+  fake = installFakeFetch(t.base, (url) =>
+    url.host === 'store.steampowered.com'
+      ? json({ items: [{ id: 271590, name: 'Grand Theft Auto V', type: 'app' }] })
+      : undefined,
+  );
 });
-after(() => t.close());
+after(() => {
+  fake.restore();
+  return t.close();
+});
 
 let seq = 0;
 async function loggedIn() {
@@ -34,7 +46,7 @@ describe('서재에 직접 추가한 게임', () => {
     assert.deepEqual((await c.request('GET', '/api/me/library-games')).json, { games: [] });
     assert.equal((await c.request('PUT', '/api/me/library-games/3498', game)).status, 204);
     assert.equal((await c.request('PUT', '/api/me/library-games/3498', game)).status, 204);
-    assert.deepEqual((await c.request('GET', '/api/me/library-games')).json.games, [game]);
+    assert.deepEqual((await c.request('GET', '/api/me/library-games')).json.games, [{ ...game, steamAppId: 271590 }]);
     assert.equal((await c.request('DELETE', '/api/me/library-games/3498')).status, 204);
     assert.deepEqual((await c.request('GET', '/api/me/library-games')).json.games, []);
   });

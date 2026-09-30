@@ -594,3 +594,33 @@ describe('LibraryPage — 직접 추가한 게임', () => {
     expect(screen.getByRole('button', { name: /^Grand Theft Auto V,/ })).toBeInTheDocument();
   });
 });
+
+describe('LibraryPage — 최근 플레이', () => {
+  it('최근 2주에 플레이한 게임만 많이 한 순서로 보여 주고, 누르면 상세가 열린다', async () => {
+    vi.mocked(meApi.fetchSteamGames).mockResolvedValue({
+      private: false,
+      games: [
+        { ...game(1, 'Terraria', 600), recentMinutes: 45 },
+        { ...game(2, 'Portal', 90), recentMinutes: 300 },
+        game(3, 'Zero', 0),
+      ],
+    });
+    const user = userEvent.setup();
+    renderLibrary();
+    const list = await screen.findByRole('list', { name: '최근 2주 동안 플레이한 게임' });
+
+    const cards = within(list).getAllByRole('button');
+    expect(cards.map((c) => c.getAttribute('aria-label'))).toEqual([
+      'Portal, 최근 2주 5.0시간',
+      'Terraria, 최근 2주 45분',
+    ]);
+    await user.click(cards[0]!);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('최근 플레이한 게임이 없으면 칸을 만들지 않는다', async () => {
+    renderLibrary();
+    await screen.findByRole('button', { name: /^Terraria,/ });
+    expect(screen.queryByText('최근 플레이')).not.toBeInTheDocument();
+  });
+});

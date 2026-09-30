@@ -18,6 +18,8 @@ export interface OwnedGame {
   appId: number;
   name: string;
   playtimeMinutes: number;
+  /** 최근 2주 동안 플레이한 시간(분). Steam이 알려 주지 않으면 0 */
+  recentMinutes: number;
   /** 마지막으로 플레이한 시각 (ISO 8601). 플레이한 적 없으면 null */
   lastPlayedAt: string | null;
   image: string;
@@ -131,6 +133,7 @@ export function fetchOwnedGames(steamId: string): Promise<OwnedGames> {
         appId: g.appid as number,
         name: typeof g.name === 'string' ? g.name : `앱 ${g.appid}`,
         playtimeMinutes: typeof g.playtime_forever === 'number' ? g.playtime_forever : 0,
+        recentMinutes: typeof g.playtime_2weeks === 'number' ? g.playtime_2weeks : 0,
         lastPlayedAt: toIso(g.rtime_last_played),
         image: `https://cdn.akamai.steamstatic.com/steam/apps/${g.appid}/header.jpg`,
         iconUrl: iconUrl(g.appid as number, g.img_icon_url),

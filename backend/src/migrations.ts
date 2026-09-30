@@ -135,6 +135,15 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 9,
+    description: '직접 추가한 게임의 Steam 앱 번호 (공식 표지·아이콘용)',
+    // steam_checked=1이면 조회를 마친 것이다 (Steam에 없는 게임은 steam_app_id가 NULL인 채로 둔다)
+    sql: `
+      ALTER TABLE custom_library_games ADD COLUMN steam_app_id INTEGER;
+      ALTER TABLE custom_library_games ADD COLUMN steam_checked INTEGER NOT NULL DEFAULT 0;
+    `,
+  },
 ];
 
 function currentVersion(db: DatabaseSync): number {

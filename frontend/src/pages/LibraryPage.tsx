@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type Keyb
 import { Link } from 'react-router';
 import { errorMessage } from '../api/client';
 import * as meApi from '../api/me';
-import { BookSpine, Cover, GameCase } from '../components/LibraryParts';
+import { BookSpine, Cover, GameCase, RecentCard } from '../components/LibraryParts';
 import { Modal } from '../components/Modal';
 import { SteamAchievementList } from '../components/SteamSection';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +14,7 @@ import {
   formatTotalHours,
   placeAt,
   playtimeLabel,
+  recentGames,
   removeFrom,
   SORT_LABELS,
   toLibraryId,
@@ -116,6 +117,7 @@ export function LibraryPage() {
       sort,
     );
   }, [data, allGames, currentShelf, editing, query, sort]);
+  const recent = useMemo(() => recentGames(data?.games ?? []), [data]);
   const totalMinutes = useMemo(() => data?.games.reduce((sum, g) => sum + g.playtimeMinutes, 0) ?? 0, [data]);
   const visibleLibrary = editing ? libraryGames : libraryGames.slice(0, shown);
 
@@ -418,6 +420,21 @@ export function LibraryPage() {
                 게임 {allGames.length.toLocaleString('ko-KR')}개 · 총 {formatTotalHours(totalMinutes)} 플레이
               </span>
             </div>
+          )}
+
+          {recent.length > 0 && !editing && (
+            <>
+              <h2 className="shelf-title">
+                최근 플레이 <span className="count">{recent.length}</span>
+              </h2>
+              <ul className="recent" aria-label="최근 2주 동안 플레이한 게임">
+                {recent.map((game) => (
+                  <li key={game.appId}>
+                    <RecentCard game={game} onPress={() => setSelected(game)} />
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
 
           <h2 className="shelf-title">

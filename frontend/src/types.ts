@@ -34,6 +34,8 @@ export interface SteamOwnedGame {
   appId: number;
   name: string;
   playtimeMinutes: number;
+  /** 최근 2주 동안 플레이한 시간(분). 없으면 0 */
+  recentMinutes?: number;
   lastPlayedAt: string | null;
   image: string;
   /** 정사각형 공식 게임 아이콘. 없는 게임은 null */
@@ -44,6 +46,8 @@ export interface SteamOwnedGame {
   custom?: boolean;
   /** 직접 추가한 게임의 표지 이미지 */
   coverUrl?: string | null;
+  /** 직접 추가한 게임 중 Steam에도 있는 게임의 Steam 앱 번호 */
+  steamAppId?: number | null;
 }
 
 /** 내 서재에 직접 추가한 게임 (RAWG 검색 결과에서 고른 것) */
@@ -52,6 +56,8 @@ export interface CustomGame {
   id: number;
   name: string;
   image: string | null;
+  /** Steam에도 있는 게임이면 그 앱 번호. 공식 표지를 쓰는 데 쓴다 */
+  steamAppId?: number | null;
 }
 
 export type Persona = 'horror' | 'scifi' | 'fantasy' | 'retro' | 'cute' | 'sports' | 'strategy' | 'action' | 'default';

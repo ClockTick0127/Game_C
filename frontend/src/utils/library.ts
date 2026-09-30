@@ -27,16 +27,20 @@ export const toRawgId = (id: number) => id - CUSTOM_ID_BASE;
 
 /** 직접 추가한 게임을 서재에서 쓰는 게임 모양으로 바꾼다 */
 export function customToOwned(game: CustomGame): SteamOwnedGame {
+  // Steam에도 있는 게임은 공식 세로 표지를 쓰고, 없으면 RAWG의 게임 화면을 쓴다
+  const steamCover = game.steamAppId ? coverUrls(game.steamAppId)[0]! : null;
+  const cover = steamCover ?? game.image;
   return {
     appId: toLibraryId(game.id),
     name: game.name,
     playtimeMinutes: 0,
     lastPlayedAt: null,
-    image: game.image ?? '',
-    iconUrl: game.image,
+    image: cover ?? '',
+    iconUrl: cover,
     persona: null,
     custom: true,
-    coverUrl: game.image,
+    coverUrl: cover,
+    steamAppId: game.steamAppId ?? null,
   };
 }
 
@@ -47,6 +51,17 @@ export const playtimeLabel = (game: SteamOwnedGame) =>
 /** 게임마다 정해지는 책등 색상(0~359). 같은 게임은 항상 같은 색이다 */
 export function spineHue(appId: number): number {
   return (appId * 137) % 360;
+}
+
+/** "최근 플레이"에 보여 줄 최대 게임 수 */
+export const MAX_RECENT = 6;
+
+/** 최근 2주에 플레이한 게임을 많이 한 순서로 (직접 추가한 게임은 기록이 없어 빠진다) */
+export function recentGames(games: SteamOwnedGame[]): SteamOwnedGame[] {
+  return games
+    .filter((g) => (g.recentMinutes ?? 0) > 0)
+    .sort((a, b) => (b.recentMinutes ?? 0) - (a.recentMinutes ?? 0))
+    .slice(0, MAX_RECENT);
 }
 
 /** 검색어로 거른 뒤 정렬한다 */
