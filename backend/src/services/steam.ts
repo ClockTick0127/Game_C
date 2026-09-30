@@ -1,4 +1,4 @@
-import type { Metacritic, SteamReviews } from '../types.ts';
+import type { Metacritic, SteamReviews, SteamStore } from '../types.ts';
 import { normalizeTitle } from '../utils/text.ts';
 
 const TIMEOUT_MS = 8_000;
@@ -55,36 +55,131 @@ export async function searchSteamAppId(name: string): Promise<number | null> {
   }
 }
 
-/**
- * Steam 스토어 페이지에 연결된 메타크리틱 점수 (PC판). 메타크리틱에는 공개 API가 없어 이 값을 쓴다.
- * 퍼블리셔가 Steam 페이지에 점수를 연결한 게임만 있으며, 없다고 평가가 없는 것은 아니다.
- */
-export async function fetchSteamMetacritic(appId: number): Promise<Metacritic | null> {
+interface AppDetailsData {
+  metacritic?: { score: number; url: string };
+  is_free?: boolean;
+  price_overview?: { initial_formatted?: string; final_formatted?: string; discount_percent?: number };
+  categories?: { description: string }[];
+  supported_languages?: string;
+  release_date?: { coming_soon?: boolean; date?: string };
+  screenshots?: { path_thumbnail?: string; path_full: string }[];
+  short_description?: string;
+  developers?: string[];
+  publishers?: string[];
+  website?: string | null;
+}
+
+export interface SteamAppDetails {
+  /** Steam 페이지에 연결된 메타스코어(PC판). 메타크리틱에는 공개 API가 없어 이 값을 쓴다. 없다고 평가가 없는 것은 아니다. */
+  metacritic: Metacritic | null;
+  store: SteamStore;
+  /** Steam이 한국어로 적어 둔 짧은 소개 */
+  description: string | null;
+  developers: string[];
+  publishers: string[];
+  website: string | null;
+}
+
+const MAX_SCREENSHOTS = 6;
+
+/** 링크로 렌더링되므로 https만 허용한다 */
+function httpsUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
   try {
-    const res = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}&filters=metacritic`, {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function stripTags(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .trim();
+}
+
+/** "한국어<strong>*</strong>, English, 日本語" 형태에서 언어 이름만 꺼낸다 (*는 음성 지원 표시) */
+function parseLanguages(html: string | undefined): string[] {
+  if (!html) return [];
+  const withoutNote = html.split(/<br\s*\/?>/i)[0]!;
+  return withoutNote
+    .split(',')
+    .map((name) => stripTags(name).replace(/\*/g, '').trim())
+    .filter(Boolean);
+}
+
+/** 메타크리틱 링크의 추적용 파라미터(?ftag=...)는 떼어내고, 메타크리틱 주소가 아니면 버린다 */
+function cleanMetacriticUrl(raw: string): string | null {
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === 'https:' && parsed.hostname.endsWith('metacritic.com')
+      ? parsed.origin + parsed.pathname
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Steam 스토어 페이지 정보(한국 스토어·한국어 기준): 메타스코어, 가격, 지원 언어, 분류, 스크린샷, 소개, 제작사.
+ * 부가 정보이므로 실패하거나 페이지가 없으면 null을 돌려준다.
+ */
+export async function fetchSteamAppDetails(appId: number): Promise<SteamAppDetails | null> {
+  try {
+    const params = new URLSearchParams({ appids: String(appId), cc: 'kr', l: 'koreana' });
+    const res = await fetch(`https://store.steampowered.com/api/appdetails?${params}`, {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!res.ok) return null;
-    // 점수가 없으면 data가 빈 배열([])로 온다
-    const data = (await res.json()) as Record<
-      string,
-      { success: boolean; data?: { metacritic?: { score: number; url: string } } }
-    >;
-    const mc = data[appId]?.data?.metacritic;
-    if (!mc || !Number.isFinite(mc.score)) return null;
+    // 페이지가 없으면 success가 false이고, 항목이 비면 data가 빈 배열([])로 온다
+    const body = (await res.json()) as Record<string, { success: boolean; data?: AppDetailsData }>;
+    const entry = body[appId];
+    if (!entry?.success || !entry.data || Array.isArray(entry.data)) return null;
+    const d = entry.data;
 
-    // 링크의 추적용 파라미터(?ftag=...)는 떼어낸다
-    let url: string | null = null;
-    try {
-      const parsed = new URL(mc.url);
-      if (parsed.protocol === 'https:' && parsed.hostname.endsWith('metacritic.com'))
-        url = parsed.origin + parsed.pathname;
-    } catch {
-      // 링크가 이상하면 점수만 보여준다
-    }
-    return { score: mc.score, url, platform: 'PC' };
+    const mc = d.metacritic;
+    const languages = parseLanguages(d.supported_languages);
+    const price = d.price_overview;
+    return {
+      metacritic:
+        mc && Number.isFinite(mc.score) ? { score: mc.score, url: cleanMetacriticUrl(mc.url), platform: 'PC' } : null,
+      store: {
+        price: d.is_free
+          ? { free: true, final: null, initial: null, discountPercent: 0 }
+          : price?.final_formatted
+            ? {
+                free: false,
+                final: price.final_formatted,
+                initial: price.initial_formatted || null,
+                discountPercent: price.discount_percent ?? 0,
+              }
+            : null,
+        // 같은 분류가 두 번 오는 경우가 있다 (예: 컨트롤러 지원)
+        categories: [...new Set((d.categories ?? []).map((c) => c.description).filter(Boolean))],
+        languages,
+        koreanSupport: languages.includes('한국어'),
+        releaseText: d.release_date?.date || null,
+        screenshots: (d.screenshots ?? [])
+          .map((sh) => {
+            const full = httpsUrl(sh.path_full);
+            return full === null ? null : { thumbnail: httpsUrl(sh.path_thumbnail) ?? full, full };
+          })
+          .filter((sh): sh is SteamStore['screenshots'][number] => sh !== null)
+          .slice(0, MAX_SCREENSHOTS),
+      },
+      description: d.short_description ? stripTags(d.short_description) || null : null,
+      developers: d.developers ?? [],
+      publishers: d.publishers ?? [],
+      website: httpsUrl(d.website),
+    };
   } catch (err) {
-    console.warn(`Steam 메타크리틱 조회 실패 (app ${appId}):`, err instanceof Error ? err.message : err);
+    console.warn(`Steam 스토어 정보 조회 실패 (app ${appId}):`, err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -113,9 +208,29 @@ export async function fetchSteamReviews(appId: number): Promise<SteamReviews | n
       percent: summary.total_reviews > 0 ? Math.round((summary.total_positive / summary.total_reviews) * 100) : null,
       total: summary.total_reviews,
       url: `https://store.steampowered.com/app/${appId}/#app_reviews_hash`,
+      // 접속자 수는 자주 바뀌어 리뷰와 따로 캐시한다 (storeInfo.ts). 여기서는 자리만 채운다.
+      currentPlayers: null,
     };
   } catch (err) {
     console.warn(`Steam 리뷰 조회 실패 (app ${appId}):`, err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/** 지금 Steam에서 이 게임을 플레이 중인 사람 수. Valve 공개 API라 키가 필요 없다. 실패하면 null */
+export async function fetchSteamCurrentPlayers(appId: number): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=${appId}`,
+      { signal: AbortSignal.timeout(TIMEOUT_MS) },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { response?: { player_count?: number; result?: number } };
+    const count = data.response?.player_count;
+    // result가 1이 아니면 앱을 찾지 못한 것이다 (출시 전 게임 등)
+    return data.response?.result === 1 && Number.isInteger(count) ? count! : null;
+  } catch (err) {
+    console.warn(`Steam 접속자 수 조회 실패 (app ${appId}):`, err instanceof Error ? err.message : err);
     return null;
   }
 }

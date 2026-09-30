@@ -1,5 +1,5 @@
 import { RAWG_API_KEY, RAWG_MAX_CALLS_PER_MINUTE } from '../config.ts';
-import type { Game } from '../types.ts';
+import type { Game, RelatedGame, RelatedGames } from '../types.ts';
 import { HttpError } from '../utils/http.ts';
 import { isAdultGame } from './contentFilter.ts';
 import { dedupeGames } from './dedupe.ts';
@@ -174,10 +174,73 @@ export interface RawgStoreLink {
   url: string;
 }
 
-/** 게임 이름과 플랫폼(slug: 'pc', 'playstation5' 등) */
-export async function fetchGameBasics(gameId: number): Promise<{ name: string; platforms: string[] }> {
-  const data = await rawgGet<{ name: string; platforms: { platform: { slug: string } }[] | null }>(`/games/${gameId}`);
-  return { name: data.name, platforms: data.platforms?.map((p) => p.platform.slug) ?? [] };
+export interface RawgGameInfo {
+  name: string;
+  /** 플랫폼 slug ('pc', 'playstation5' 등) */
+  platforms: string[];
+  /** 영어 설명(HTML 제거된 텍스트) */
+  description: string | null;
+  developers: string[];
+  publishers: string[];
+  /** 영어 태그 이름 (인기순) */
+  tags: string[];
+  ageRating: string | null;
+  playtimeHours: number | null;
+  website: string | null;
+}
+
+interface RawgGameDetail {
+  name: string;
+  platforms: { platform: { slug: string } }[] | null;
+  description_raw?: string | null;
+  developers?: { name: string }[] | null;
+  publishers?: { name: string }[] | null;
+  tags?: { name: string; language: string }[] | null;
+  esrb_rating?: { name: string } | null;
+  playtime?: number | null;
+  website?: string | null;
+}
+
+const MAX_TAGS = 8;
+
+/** 게임 이름·플랫폼과 소개·제작 정보 (RAWG 게임 상세 API 한 번으로 가져온다) */
+export async function fetchGameInfo(gameId: number): Promise<RawgGameInfo> {
+  const data = await rawgGet<RawgGameDetail>(`/games/${gameId}`);
+  return {
+    name: data.name,
+    platforms: data.platforms?.map((p) => p.platform.slug) ?? [],
+    description: data.description_raw?.trim() || null,
+    developers: data.developers?.map((d) => d.name) ?? [],
+    publishers: data.publishers?.map((p) => p.name) ?? [],
+    tags:
+      data.tags
+        ?.filter((t) => t.language === 'eng')
+        .map((t) => t.name)
+        .slice(0, MAX_TAGS) ?? [],
+    ageRating: data.esrb_rating?.name ?? null,
+    // 0은 "데이터 없음"이다
+    playtimeHours: data.playtime && data.playtime > 0 ? data.playtime : null,
+    website: data.website?.startsWith('https://') ? data.website : null,
+  };
+}
+
+const MAX_RELATED = 6;
+
+async function fetchRelatedList(gameId: number, kind: 'additions' | 'game-series'): Promise<RelatedGame[]> {
+  const data = await rawgGet<{ results: RawgGame[] }>(`/games/${gameId}/${kind}`, { page_size: '20' });
+  return data.results
+    .filter((g) => !isAdultGame(g))
+    .map((g) => ({ id: g.id, name: g.name, released: g.released }))
+    .slice(0, MAX_RELATED);
+}
+
+/** DLC·확장팩·에디션과 같은 시리즈의 다른 게임 */
+export async function fetchRelatedGames(gameId: number): Promise<RelatedGames> {
+  const [additions, series] = await Promise.all([
+    fetchRelatedList(gameId, 'additions'),
+    fetchRelatedList(gameId, 'game-series'),
+  ]);
+  return { additions, series };
 }
 
 /** 게임의 스토어별 판매 페이지 링크. (게임 상세 API에는 링크가 빠져 있어 별도 API를 쓴다) */

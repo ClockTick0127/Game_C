@@ -15,6 +15,7 @@ export async function startTestServer({
 } = {}) {
   process.env.LOG_REQUESTS = logRequests ? '1' : '0';
   process.env.RAWG_MAX_CALLS_PER_MINUTE = String(rawgMaxCallsPerMinute);
+  process.env.ITUNES_MAX_CALLS_PER_MINUTE = '10000';
   process.env.RATE_LIMIT_DISABLED = rateLimit ? '0' : '1';
   process.env.DB_PATH = join(mkdtempSync(join(tmpdir(), 'game-calendar-test-')), 'test.db');
   process.env.RAWG_API_KEY = rawgKey;

@@ -23,5 +23,7 @@ export const ALLOWED_ORIGINS = [
 ];
 /** 서버 전체가 RAWG로 보낼 수 있는 분당 요청 수. IP가 여러 개여도 무료 요금제 한도를 지키기 위한 상한 */
 export const RAWG_MAX_CALLS_PER_MINUTE = Number(process.env.RAWG_MAX_CALLS_PER_MINUTE) || 120;
+/** 서버 전체가 Apple iTunes API로 보낼 수 있는 분당 요청 수. Apple이 IP당 분당 20회 안팎을 넘으면 거절하므로 그보다 낮게 둔다 */
+export const ITUNES_MAX_CALLS_PER_MINUTE = Number(process.env.ITUNES_MAX_CALLS_PER_MINUTE) || 15;
 /** 요청 로그 사용 여부. 기본은 켜짐이며 LOG_REQUESTS=0으로 끈다 */
 export const LOG_REQUESTS = process.env.LOG_REQUESTS !== '0';

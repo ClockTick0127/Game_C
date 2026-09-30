@@ -3,7 +3,7 @@
  * 테스트 서버로 가는 요청(테스트 클라이언트의 fetch)은 그대로 통과시키고, 그 밖의 주소만 handler가 응답한다.
  * handler가 undefined를 돌려주면 "예상하지 못한 외부 요청"으로 보고 테스트를 실패시킨다.
  */
-export type ExternalHandler = (url: URL) => Response | Promise<Response> | undefined;
+export type ExternalHandler = (url: URL, init?: RequestInit) => Response | Promise<Response> | undefined;
 
 export function installFakeFetch(serverBase: string, handler: ExternalHandler) {
   const realFetch = globalThis.fetch;
@@ -15,7 +15,7 @@ export function installFakeFetch(serverBase: string, handler: ExternalHandler) {
     if (url.origin === serverOrigin) return realFetch(input, init);
 
     calls.push(url);
-    const response = await handler(url);
+    const response = await handler(url, init);
     if (!response) throw new Error(`예상하지 못한 외부 요청: ${url.href}`);
     return response;
   }) as typeof fetch;

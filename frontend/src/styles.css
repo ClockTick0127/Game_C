@@ -1126,6 +1126,216 @@ input:focus {
   border-top: 1px solid var(--border);
 }
 
+/* 소개 · 제작 정보 · 스크린샷 */
+.extras {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.extras-desc {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+/* detail-meta의 열 정렬을 유지하면서 항목을 감싼 div가 그리드에 끼지 않도록 한다 */
+.extras .detail-meta {
+  margin: 0;
+}
+
+.extras-fact {
+  display: contents;
+}
+
+.price-initial {
+  margin-right: 6px;
+  color: var(--text-dim);
+}
+
+.price-discount {
+  margin-left: 6px;
+  color: var(--success);
+}
+
+.extras-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.extras-chips li {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.extras-shots {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.extras-shots img {
+  display: block;
+  width: 200px;
+  height: 113px;
+  border-radius: 6px;
+  background: var(--skeleton);
+  object-fit: cover;
+}
+
+.steam-players {
+  margin: 8px 0 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* 스토어별 가격 비교 */
+.price-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.price-list a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.price-list a:hover {
+  border-color: var(--accent);
+}
+
+.price-store {
+  flex: 1;
+  font-weight: 600;
+}
+
+.price-off {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.price-value.best {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.price-note {
+  margin: 0 0 4px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.price-note strong {
+  color: var(--text);
+}
+
+/* iOS App Store */
+.ios-app {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ios-app .detail-meta {
+  margin: 0;
+}
+
+.ios-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.ios-head:hover {
+  border-color: var(--accent);
+}
+
+.ios-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ios-shots img {
+  width: auto;
+  height: 180px;
+}
+
+/* DLC · 같은 시리즈 */
+.related-group + .related-group {
+  margin-top: 12px;
+}
+
+.related-group h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.related-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.related-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-date {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
 .store-block h3 {
   margin: 0 0 8px;
   color: var(--text-dim);

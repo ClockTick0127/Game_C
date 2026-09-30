@@ -71,7 +71,15 @@ describe('그 밖의 게임 API — 샘플 모드', () => {
   it('스토어 정보는 비어 있는 응답', async () => {
     const res = await get('/api/games/123/store-info');
     assert.equal(res.status, 200);
-    assert.deepEqual(res.json, { stores: [], steam: null, metacritic: null });
+    assert.deepEqual(res.json, {
+      stores: [],
+      steam: null,
+      metacritic: null,
+      details: null,
+      prices: null,
+      related: null,
+      ios: null,
+    });
   });
 
   it('게임 ID가 양의 정수가 아니면 400', async () => {

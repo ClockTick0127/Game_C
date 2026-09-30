@@ -213,6 +213,7 @@ describe('없는 게임 번호 조회', () => {
       if (url.pathname === '/api/games/888001/stores')
         return json({ results: [{ store_id: 3, url: 'https://store.playstation.com/z' }] });
       if (url.pathname === '/api/games/888001') return json({ name: 'Real Game', platforms: [] });
+      if (/^\/api\/games\/888001\/(additions|game-series)$/.test(url.pathname)) return json({ results: [] });
       return new Response('nf', { status: 404 });
     });
     await get('/api/games/888001/store-info');

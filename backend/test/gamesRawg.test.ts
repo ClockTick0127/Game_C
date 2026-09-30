@@ -6,6 +6,7 @@ import { startTestServer } from './helpers.ts';
 const API_KEY = 'test-secret-key-123';
 const RAWG = 'api.rawg.io';
 const STEAM = 'store.steampowered.com';
+const CHEAPSHARK = 'www.cheapshark.com';
 
 let t: Awaited<ReturnType<typeof startTestServer>>;
 let fake: ReturnType<typeof installFakeFetch>;
@@ -257,6 +258,7 @@ describe('GET /api/games/:id/store-info', () => {
       percent: 90,
       total: 100,
       url: 'https://store.steampowered.com/app/1091500/#app_reviews_hash',
+      currentPlayers: null, // 접속자 수 API가 응답하지 않은 경우
     });
     assert.deepEqual(res.json.metacritic, { score: 88, url: 'https://www.metacritic.com/game/pc/x/', platform: 'PC' });
   });
@@ -313,6 +315,19 @@ describe('GET /api/games/:id/store-info', () => {
       stores: [{ slug: 'playstation-store', name: 'PlayStation Store', url: 'https://store.playstation.com/x' }],
       steam: null,
       metacritic: null,
+      details: {
+        description: null,
+        developers: [],
+        publishers: [],
+        tags: [],
+        ageRating: null,
+        playtimeHours: null,
+        website: null,
+        steam: null,
+      },
+      prices: null,
+      related: null, // DLC·시리즈 요청은 이 테스트에서 응답하지 않았다
+      ios: null,
     });
   });
 
@@ -355,6 +370,482 @@ describe('GET /api/games/:id/store-info', () => {
     assert.equal(res.json.steam.total, 3);
   });
 
+  it('소개·제작 정보는 Steam(한국어)을 우선하고 RAWG 정보로 보충한다', async () => {
+    withExternal((url) => {
+      if (url.pathname === '/api/games/609/stores')
+        return json({ results: [{ store_id: 1, url: 'https://store.steampowered.com/app/5/' }] });
+      if (url.pathname === '/api/games/609') {
+        return json({
+          name: 'Rich Game',
+          platforms: [{ platform: { slug: 'pc' } }],
+          description_raw: 'English description',
+          developers: [{ name: 'Dev EN' }],
+          publishers: [{ name: 'Pub EN' }],
+          tags: [
+            { name: 'Roguelike', language: 'eng' },
+            { name: 'Рогалик', language: 'rus' },
+            { name: 'Indie', language: 'eng' },
+          ],
+          esrb_rating: { name: 'Teen' },
+          playtime: 12,
+          website: 'http://insecure.example.com',
+        });
+      }
+      if (url.pathname === '/appreviews/5') return json(steamReviews);
+      if (url.pathname === '/api/appdetails') {
+        assert.equal(url.searchParams.get('cc'), 'kr');
+        assert.equal(url.searchParams.get('l'), 'koreana');
+        return json({
+          '5': {
+            success: true,
+            data: {
+              short_description: '한국어 <b>소개</b> &amp; 설명',
+              developers: ['개발사'],
+              publishers: [],
+              website: 'https://rich.example.com/',
+              is_free: false,
+              price_overview: { initial_formatted: '₩30,000', final_formatted: '₩24,000', discount_percent: 20 },
+              categories: [
+                { description: '싱글 플레이어' },
+                { description: 'Steam 도전 과제' },
+                { description: '싱글 플레이어' },
+              ],
+              supported_languages:
+                'English<strong>*</strong>, 한국어, 日本語<br><strong>*</strong>음성이 지원되는 언어',
+              release_date: { coming_soon: false, date: '2026년 9월 30일' },
+              screenshots: [
+                { path_thumbnail: 'https://cdn.example.com/1t.jpg', path_full: 'https://cdn.example.com/1.jpg' },
+                { path_full: 'https://cdn.example.com/2.jpg' }, // 썸네일이 없으면 원본을 쓴다
+                { path_full: 'http://cdn.example.com/3.jpg' },
+                { path_full: 'javascript:alert(1)' },
+              ],
+            },
+          },
+        });
+      }
+      return undefined;
+    });
+    const res = await get('/api/games/609/store-info');
+
+    assert.deepEqual(res.json.details, {
+      description: '한국어 소개 & 설명',
+      developers: ['개발사'],
+      publishers: ['Pub EN'], // Steam에 없으면 RAWG 값
+      tags: ['Roguelike', 'Indie'], // 영어 태그만
+      ageRating: 'Teen',
+      playtimeHours: 12,
+      website: 'https://rich.example.com/', // Steam의 https 주소
+      steam: {
+        price: { free: false, final: '₩24,000', initial: '₩30,000', discountPercent: 20 },
+        categories: ['싱글 플레이어', 'Steam 도전 과제'],
+        languages: ['English', '한국어', '日本語'],
+        koreanSupport: true,
+        releaseText: '2026년 9월 30일',
+        screenshots: [
+          { thumbnail: 'https://cdn.example.com/1t.jpg', full: 'https://cdn.example.com/1.jpg' },
+          { thumbnail: 'https://cdn.example.com/2.jpg', full: 'https://cdn.example.com/2.jpg' },
+        ], // https만
+      },
+    });
+  });
+
+  it('Steam이 없으면 RAWG 설명을 길이 제한해 쓰고, http 웹사이트는 버린다', async () => {
+    withExternal((url) => {
+      if (url.pathname === '/api/games/610/stores') return json({ results: [] });
+      if (url.pathname === '/api/games/610')
+        return json({
+          name: 'Console Only',
+          platforms: [{ platform: { slug: 'playstation5' } }],
+          description_raw: 'a'.repeat(800),
+          website: 'http://insecure.example.com',
+          playtime: 0,
+        });
+      return undefined;
+    });
+    const details = (await get('/api/games/610/store-info')).json.details;
+
+    assert.equal(details.description.length, 501); // 500자 + …
+    assert.ok(details.description.endsWith('…'));
+    assert.equal(details.website, null);
+    assert.equal(details.playtimeHours, null); // 0은 데이터 없음
+    assert.equal(details.steam, null);
+  });
+
+  it('무료 게임과 한국어 미지원 게임을 구분한다', async () => {
+    withExternal((url) => {
+      if (url.pathname === '/api/games/611/stores')
+        return json({ results: [{ store_id: 1, url: 'https://store.steampowered.com/app/6/' }] });
+      if (url.pathname === '/api/games/611') return json({ name: 'Free', platforms: [] });
+      if (url.pathname === '/appreviews/6') return json(steamReviews);
+      if (url.pathname === '/api/appdetails')
+        return json({ '6': { success: true, data: { is_free: true, supported_languages: 'English, French' } } });
+      return undefined;
+    });
+    const steam = (await get('/api/games/611/store-info')).json.details.steam;
+
+    assert.deepEqual(steam.price, { free: true, final: null, initial: null, discountPercent: 0 });
+    assert.equal(steam.koreanSupport, false);
+    assert.deepEqual(steam.languages, ['English', 'French']);
+  });
+
+  it('RAWG 게임 정보를 못 가져와도 스토어 링크는 돌려주고, 그 결과는 캐시하지 않는다', async () => {
+    let detailFails = true;
+    const f = withExternal((url) => {
+      if (url.pathname === '/api/games/612/stores')
+        return json({ results: [{ store_id: 3, url: 'https://store.playstation.com/z' }] });
+      if (url.pathname === '/api/games/612')
+        return detailFails ? new Response('down', { status: 500 }) : json({ name: 'Flaky', platforms: [] });
+      return undefined;
+    });
+    const first = await get('/api/games/612/store-info');
+    assert.equal(first.status, 200);
+    assert.equal(first.json.stores.length, 1);
+    assert.equal(first.json.details, null);
+
+    detailFails = false;
+    const second = await get('/api/games/612/store-info');
+    assert.notEqual(second.json.details, null); // 실패한 결과가 캐시에 남지 않아 다시 시도했다
+    assert.equal(f.callsTo(RAWG).filter((u) => u.pathname === '/api/games/612').length, 2);
+  });
+
+  it('DLC와 같은 시리즈 게임을 보여주고, 성인 게임은 거르고, 개수를 제한한다', async () => {
+    withExternal((url) => {
+      if (url.pathname === '/api/games/613/stores') return json({ results: [] });
+      if (url.pathname === '/api/games/613') return json({ name: 'Series Game', platforms: [] });
+      if (url.pathname === '/api/games/613/additions') {
+        return json({
+          results: [
+            rawgGame({ id: 1, name: 'Expansion', released: '2027-01-01' }),
+            rawgGame({ id: 2, name: '성인 DLC', tags: [{ slug: 'hentai' }] }),
+            rawgGame({ id: 3, name: 'Unreleased DLC', released: null }),
+          ],
+        });
+      }
+      if (url.pathname === '/api/games/613/game-series') {
+        return json({ results: Array.from({ length: 10 }, (_, i) => rawgGame({ id: 100 + i, name: `Sequel ${i}` })) });
+      }
+      return undefined;
+    });
+    const related = (await get('/api/games/613/store-info')).json.related;
+
+    assert.deepEqual(related.additions, [
+      { id: 1, name: 'Expansion', released: '2027-01-01' },
+      { id: 3, name: 'Unreleased DLC', released: null },
+    ]);
+    assert.equal(related.series.length, 6);
+  });
+
+  it('CheapShark로 스토어별 가격을 싼 순으로 보여주고 비활성 스토어는 뺀다', async () => {
+    const userAgents: string[] = [];
+    const f = withExternal((url, init) => {
+      if (url.pathname === '/api/games/614/stores')
+        return json({ results: [{ store_id: 1, url: 'https://store.steampowered.com/app/7/' }] });
+      if (url.pathname === '/api/games/614') return json({ name: 'Priced', platforms: [] });
+      if (/^\/api\/games\/614\/(additions|game-series)$/.test(url.pathname)) return json({ results: [] });
+      if (url.pathname === '/appreviews/7') return json(steamReviews);
+      if (url.pathname === '/api/appdetails') return json({ '7': { success: true, data: {} } });
+      if (url.host === 'api.steampowered.com') return json({ response: { player_count: 1234, result: 1 } });
+      if (url.host === CHEAPSHARK) {
+        userAgents.push(new Headers(init?.headers).get('user-agent') ?? '');
+        if (url.pathname === '/api/1.0/stores')
+          return json([
+            { storeID: '1', storeName: 'Steam', isActive: 1 },
+            { storeID: '2', storeName: 'GamersGate', isActive: 0 },
+            { storeID: '11', storeName: 'Humble Store', isActive: 1 },
+          ]);
+        if (url.searchParams.has('steamAppID')) return json([{ gameID: '55', steamAppID: '7' }]);
+        if (url.searchParams.get('id') === '55') {
+          return json({
+            cheapestPriceEver: { price: '5.49', date: 1557423616 },
+            deals: [
+              { storeID: '1', dealID: 'a%2Bb%3D', price: '24.99', retailPrice: '24.99', savings: '0.000000' },
+              { storeID: '2', dealID: 'inactive', price: '1.00', retailPrice: '24.99', savings: '96' },
+              { storeID: '11', dealID: 'c', price: '19.99', retailPrice: '24.99', savings: '20.008003' },
+            ],
+          });
+        }
+      }
+      return undefined;
+    });
+    const res = await get('/api/games/614/store-info');
+
+    assert.deepEqual(res.json.prices, {
+      deals: [
+        {
+          store: 'Humble Store',
+          price: 19.99,
+          retailPrice: 24.99,
+          savingsPercent: 20,
+          url: 'https://www.cheapshark.com/redirect?dealID=c',
+        },
+        {
+          store: 'Steam',
+          price: 24.99,
+          retailPrice: 24.99,
+          savingsPercent: 0,
+          url: 'https://www.cheapshark.com/redirect?dealID=a%2Bb%3D', // 풀었다가 다시 인코딩해도 같은 값
+        },
+      ],
+      cheapestEver: { price: 5.49, date: '2019-05-09' },
+    });
+    assert.ok(f.callsTo(CHEAPSHARK).length >= 3);
+    // CheapShark는 식별 가능한 User-Agent가 없는 요청을 거절한다
+    assert.ok(userAgents.every((ua) => ua.startsWith('GameCalendar/')));
+  });
+
+  it('현재 접속자 수는 6시간 캐시와 별개로 짧게 캐시한다', async () => {
+    let players = 100;
+    const f = withExternal((url) => {
+      if (url.pathname === '/api/games/615/stores')
+        return json({ results: [{ store_id: 1, url: 'https://store.steampowered.com/app/8/' }] });
+      if (url.pathname === '/api/games/615') return json({ name: 'Live', platforms: [] });
+      if (/^\/api\/games\/615\/(additions|game-series)$/.test(url.pathname)) return json({ results: [] });
+      if (url.pathname === '/appreviews/8') return json(steamReviews);
+      if (url.pathname === '/api/appdetails') return json({ '8': { success: true, data: {} } });
+      if (url.host === CHEAPSHARK) return json([]);
+      if (url.host === 'api.steampowered.com') return json({ response: { player_count: players, result: 1 } });
+      return undefined;
+    });
+    assert.equal((await get('/api/games/615/store-info')).json.steam.currentPlayers, 100);
+
+    players = 999; // 5분 안에는 다시 묻지 않는다
+    assert.equal((await get('/api/games/615/store-info')).json.steam.currentPlayers, 100);
+    assert.equal(f.callsTo('api.steampowered.com').length, 1);
+  });
+
+  it('가격을 못 가져와도 응답은 정상이고, 그 결과는 캐시하지 않는다', async () => {
+    let cheapsharkDown = true;
+    const f = withExternal((url) => {
+      if (url.pathname === '/api/games/616/stores')
+        return json({ results: [{ store_id: 1, url: 'https://store.steampowered.com/app/9/' }] });
+      if (url.pathname === '/api/games/616') return json({ name: 'Flaky Price', platforms: [] });
+      if (/^\/api\/games\/616\/(additions|game-series)$/.test(url.pathname)) return json({ results: [] });
+      if (url.pathname === '/appreviews/9') return json(steamReviews);
+      if (url.pathname === '/api/appdetails') return json({ '9': { success: true, data: {} } });
+      if (url.host === 'api.steampowered.com') return json({ response: { result: 42 } });
+      if (url.host === CHEAPSHARK) return cheapsharkDown ? new Response('down', { status: 503 }) : json([]);
+      return undefined;
+    });
+    const first = await get('/api/games/616/store-info');
+    assert.equal(first.status, 200);
+    assert.equal(first.json.prices, null);
+    assert.equal(first.json.steam.currentPlayers, null); // result가 1이 아니면 접속자 수 없음
+
+    const gameLookups = () => f.callsTo(CHEAPSHARK, '/api/1.0/games').length;
+    const before = gameLookups();
+    cheapsharkDown = false;
+    await get('/api/games/616/store-info');
+    assert.ok(gameLookups() > before); // 실패한 결과가 캐시에 남지 않아 CheapShark를 다시 불렀다
+  });
+
+  describe('iOS App Store (iTunes)', () => {
+    const ITUNES = 'itunes.apple.com';
+    const usApp = (overrides: Record<string, unknown> = {}) => ({
+      trackId: 111,
+      trackName: 'Mobile Hero',
+      primaryGenreName: 'Games',
+      artistName: 'Hero Studio',
+      sellerName: 'Hero Studio LTD',
+      ...overrides,
+    });
+    const krApp = {
+      trackId: 111,
+      trackName: '모바일 히어로',
+      trackViewUrl: 'https://apps.apple.com/kr/app/%EB%AA%A8%EB%B0%94%EC%9D%BC/id111?uo=4',
+      primaryGenreName: 'Games',
+      sellerName: 'Hero Studio LTD',
+      formattedPrice: '무료',
+      averageUserRating: 4.11319,
+      userRatingCount: 44429,
+      contentAdvisoryRating: '12+',
+      languageCodesISO2A: ['EN', 'KO'],
+      fileSizeBytes: '3766125568',
+      description: '한국어 앱스토어 소개',
+      screenshotUrls: ['https://is1-ssl.mzstatic.com/a.png', 'http://insecure.example.com/b.png'],
+    };
+
+    /** 게임 n번의 RAWG 응답(플랫폼 지정)과 iTunes 응답을 가짜로 만든다 */
+    function fakeIos(
+      n: number,
+      platformSlug: string,
+      itunes: ExternalHandler,
+      storeLinks: { store_id: number; url: string }[] = [],
+    ) {
+      return withExternal((url, init) => {
+        if (url.pathname === `/api/games/${n}/stores`) return json({ results: storeLinks });
+        if (url.pathname === `/api/games/${n}`)
+          return json({
+            name: 'Mobile Hero',
+            platforms: [{ platform: { slug: platformSlug } }],
+            description_raw: 'English RAWG description',
+            developers: [{ name: 'Hero Studio' }],
+          });
+        if (new RegExp(`^/api/games/${n}/(additions|game-series)$`).test(url.pathname)) return json({ results: [] });
+        if (url.host === ITUNES) return itunes(url, init);
+        return undefined;
+      });
+    }
+
+    const okItunes: ExternalHandler = (url) => {
+      if (url.pathname === '/search') return json({ results: [usApp()] });
+      if (url.pathname === '/lookup') return json({ results: [krApp] });
+      return undefined;
+    };
+
+    it('미국 스토어에서 영어 제목으로 찾고, 한국 스토어 정보(가격·평점·소개)를 보여준다', async () => {
+      const f = fakeIos(620, 'ios', okItunes);
+      const res = await get('/api/games/620/store-info');
+
+      assert.deepEqual(res.json.ios, {
+        url: 'https://apps.apple.com/kr/app/%EB%AA%A8%EB%B0%94%EC%9D%BC/id111', // 추적 파라미터 제거
+        name: '모바일 히어로',
+        price: '무료',
+        rating: 4.1,
+        ratingCount: 44429,
+        seller: 'Hero Studio LTD',
+        ageRating: '12+',
+        koreanSupport: true,
+        sizeMb: 3766,
+        storefront: 'KR',
+        screenshots: ['https://is1-ssl.mzstatic.com/a.png'], // https만
+      });
+      assert.equal(res.json.details.description, '한국어 앱스토어 소개'); // RAWG 영어 설명보다 우선
+      assert.deepEqual(
+        res.json.stores.map((s: { slug: string }) => s.slug),
+        ['apple-appstore'],
+      );
+      const search = f.callsTo(ITUNES, '/search')[0]!;
+      assert.equal(search.searchParams.get('country'), 'us');
+      assert.equal(f.callsTo(ITUNES, '/lookup')[0]!.searchParams.get('country'), 'kr');
+    });
+
+    it('RAWG가 App Store 링크를 알면 이름 검색 없이 그 앱 번호로 정확히 찾는다', async () => {
+      const f = fakeIos(
+        627,
+        'ios', // 이름 검색으로는 못 찾는 게임(미국 스토어 제목이 다르다)이라도 링크로 찾는다
+        (url) => (url.pathname === '/lookup' ? json({ results: [krApp] }) : undefined),
+        [{ store_id: 4, url: 'https://apps.apple.com/us/app/genshin-impact/id1517783697' }],
+      );
+      const res = await get('/api/games/627/store-info');
+
+      assert.equal(res.json.ios.name, '모바일 히어로');
+      assert.equal(f.callsTo(ITUNES, '/search').length, 0);
+      assert.equal(f.callsTo(ITUNES, '/lookup')[0]!.searchParams.get('id'), '1517783697');
+      // RAWG 링크와 App Store 정보가 함께 있어도 스토어 버튼은 하나다
+      assert.equal(res.json.stores.filter((st: { slug: string }) => st.slug === 'apple-appstore').length, 1);
+    });
+
+    it('앱 번호로 한국 스토어에 없으면 미국 스토어에서 다시 찾는다', async () => {
+      fakeIos(
+        628,
+        'ios',
+        (url) => {
+          if (url.pathname !== '/lookup') return undefined;
+          return json({
+            results:
+              url.searchParams.get('country') === 'kr'
+                ? []
+                : [{ ...krApp, trackViewUrl: 'https://apps.apple.com/us/app/x/id111', formattedPrice: '$1.99' }],
+          });
+        },
+        [{ store_id: 4, url: 'https://apps.apple.com/us/app/x/id111' }],
+      );
+      const ios = (await get('/api/games/628/store-info')).json.ios;
+      assert.equal(ios.storefront, 'US');
+      assert.equal(ios.price, '$1.99');
+    });
+
+    it('iOS 게임이 아니면 iTunes를 부르지 않는다', async () => {
+      const f = fakeIos(621, 'playstation5', okItunes);
+      const res = await get('/api/games/621/store-info');
+
+      assert.equal(res.json.ios, null);
+      assert.equal(f.callsTo(ITUNES).length, 0);
+    });
+
+    it('게임 카테고리가 아니거나 제목이 다른 앱은 무시한다', async () => {
+      fakeIos(622, 'ios', (url) => {
+        if (url.pathname === '/search')
+          return json({
+            results: [
+              usApp({ trackId: 1, primaryGenreName: 'Entertainment' }), // 제목은 같지만 게임이 아님
+              usApp({ trackId: 2, trackName: 'Mobile Hero Wallpapers' }),
+            ],
+          });
+        return undefined;
+      });
+      const res = await get('/api/games/622/store-info');
+      assert.equal(res.status, 200);
+      assert.equal(res.json.ios, null);
+    });
+
+    it('부제만 다른 앱은 제작사가 RAWG 정보와 겹칠 때만 인정한다', async () => {
+      fakeIos(623, 'ios', (url) => {
+        if (url.pathname === '/search')
+          return json({
+            results: [
+              usApp({
+                trackId: 3,
+                trackName: 'Mobile Hero: Other Publisher Game',
+                artistName: 'Unrelated Inc',
+                sellerName: 'Unrelated Inc',
+              }),
+              usApp({ trackId: 111, trackName: 'Mobile Hero - Idle RPG' }),
+            ],
+          });
+        if (url.pathname === '/lookup') return json({ results: [krApp] });
+        return undefined;
+      });
+      const res = await get('/api/games/623/store-info');
+      assert.equal(res.json.ios.name, '모바일 히어로'); // trackId 111(제작사 일치)이 선택됐다
+    });
+
+    it('한국 스토어에 없는 앱은 미국 스토어 정보로 대신한다', async () => {
+      fakeIos(624, 'ios', (url) => {
+        if (url.pathname === '/search')
+          return json({
+            results: [
+              usApp({ trackViewUrl: 'https://apps.apple.com/us/app/mobile-hero/id111', formattedPrice: '$4.99' }),
+            ],
+          });
+        if (url.pathname === '/lookup') return json({ results: [] });
+        return undefined;
+      });
+      const ios = (await get('/api/games/624/store-info')).json.ios;
+      assert.equal(ios.storefront, 'US');
+      assert.equal(ios.price, '$4.99');
+      assert.equal(ios.rating, null); // 평가가 없으면 null
+    });
+
+    it('App Store 주소가 아닌 링크는 버려 앱 정보 자체를 만들지 않는다', async () => {
+      fakeIos(625, 'ios', (url) => {
+        if (url.pathname === '/search') return json({ results: [usApp()] });
+        if (url.pathname === '/lookup')
+          return json({ results: [{ ...krApp, trackViewUrl: 'https://evil.example.com/app/id111' }] });
+        return undefined;
+      });
+      const res = await get('/api/games/625/store-info');
+      assert.equal(res.json.ios, null);
+      assert.equal(res.json.stores.length, 0);
+    });
+
+    it('iTunes가 실패해도 응답은 정상이고, 그 결과는 캐시하지 않는다', async () => {
+      let down = true;
+      const f = fakeIos(626, 'ios', (url) => {
+        if (down) return new Response('down', { status: 503 });
+        return okItunes(url);
+      });
+      const first = await get('/api/games/626/store-info');
+      assert.equal(first.status, 200);
+      assert.equal(first.json.ios, null);
+
+      down = false;
+      const second = await get('/api/games/626/store-info');
+      assert.equal(second.json.ios.storefront, 'KR'); // 실패한 결과가 캐시에 남지 않아 다시 시도했다
+      assert.ok(f.callsTo(ITUNES, '/search').length >= 2);
+    });
+  });
+
   it('RAWG에 없는 게임은 404', async () => {
     withExternal(() => new Response('not found', { status: 404 }));
     const res = await get('/api/games/999999/store-info');
@@ -366,6 +857,7 @@ describe('GET /api/games/:id/store-info', () => {
       if (url.pathname === '/api/games/608/stores')
         return json({ results: [{ store_id: 3, url: 'https://store.playstation.com/y' }] });
       if (url.pathname === '/api/games/608') return json({ name: 'Cache Me', platforms: [] });
+      if (/^\/api\/games\/608\/(additions|game-series)$/.test(url.pathname)) return json({ results: [] });
       return undefined;
     });
     await get('/api/games/608/store-info');

@@ -1,11 +1,18 @@
 import { useStoreInfo } from '../hooks/useStoreInfo';
 import type { Metacritic, SteamReviews } from '../types';
+import { GameExtras } from './GameExtras';
+import { IosAppCard, PriceCompare, RelatedGamesList } from './StoreExtras';
 
 /** Steam 스토어와 같은 색 구분: 긍정(파랑) · 복합적(노랑) · 부정(빨강) */
 function tone(score: number): 'positive' | 'mixed' | 'negative' {
   if (score >= 6) return 'positive';
   if (score === 5) return 'mixed';
   return 'negative';
+}
+
+function Players({ count }: { count: number | null }) {
+  if (count === null) return null;
+  return <p className="steam-players">지금 {count.toLocaleString('ko-KR')}명이 플레이 중이에요.</p>;
 }
 
 function SteamRating({ steam, onPc }: { steam: SteamReviews | null; onPc: boolean }) {
@@ -89,6 +96,8 @@ export function StoreSection({ gameId, onPc, rawgMetacritic }: Props) {
 
   return (
     <div className="store-section" aria-busy={loading}>
+      {info?.details && <GameExtras details={info.details} />}
+
       {/* 점수가 없으면 영역 자체를 숨긴다 (없다고 평가가 나쁜 것은 아니다) */}
       {!loading && metacritic && (
         <div className="store-block">
@@ -99,8 +108,29 @@ export function StoreSection({ gameId, onPc, rawgMetacritic }: Props) {
 
       <div className="store-block">
         <h3>Steam 사용자 평가</h3>
-        {loading ? <span className="skeleton skeleton-line" /> : <SteamRating steam={info!.steam} onPc={onPc} />}
+        {loading ? (
+          <span className="skeleton skeleton-line" />
+        ) : (
+          <>
+            <SteamRating steam={info!.steam} onPc={onPc} />
+            <Players count={info!.steam?.currentPlayers ?? null} />
+          </>
+        )}
       </div>
+
+      {!loading && info!.prices && (
+        <div className="store-block">
+          <h3>PC 스토어 가격 비교</h3>
+          <PriceCompare prices={info!.prices} />
+        </div>
+      )}
+
+      {!loading && info!.ios && (
+        <div className="store-block">
+          <h3>iOS App Store</h3>
+          <IosAppCard app={info!.ios} />
+        </div>
+      )}
 
       {(loading || info!.stores.length > 0) && (
         <div className="store-block">
@@ -125,6 +155,13 @@ export function StoreSection({ gameId, onPc, rawgMetacritic }: Props) {
               ))
             )}
           </div>
+        </div>
+      )}
+
+      {info?.related && (info.related.additions.length > 0 || info.related.series.length > 0) && (
+        <div className="store-block">
+          <h3>관련 게임</h3>
+          <RelatedGamesList related={info.related} />
         </div>
       )}
     </div>
