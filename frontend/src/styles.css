@@ -2743,12 +2743,12 @@ a.metascore:hover {
 
 /* 서재: 책등이 보이게 세워 꽂은 책 */
 .stacks {
-  --spine-h: 300px;
+  --spine-h: 340px;
   --row: calc(var(--spine-h) + 46px);
   display: grid;
   grid-auto-rows: var(--row);
-  /* 넓은 화면에서는 한 줄에 20권. 좁아지면 책 너비가 너무 줄지 않게 개수가 줄어든다 */
-  grid-template-columns: repeat(20, minmax(0, 1fr));
+  /* 넓은 화면에서는 한 줄에 15권. 좁아지면 책 너비가 너무 줄지 않게 개수가 줄어든다 */
+  grid-template-columns: repeat(15, minmax(0, 1fr));
   margin: 0 0 6px;
   padding: 10px 12px;
   border: 1px solid #3a2a1d;
@@ -2776,23 +2776,21 @@ a.metascore:hover {
   padding: 0 3px 16px;
 }
 
+/* 게임팩 책등: 색(--spine-top/bottom/accent/text)은 게임의 대표색에서 온다 */
 .spine {
-  --hue: 200;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 92px;
+  max-width: 116px;
   height: var(--spine-h);
-  padding: 0 0 8px;
+  padding: 0;
   border: 0;
-  border-top: 6px solid hsl(var(--hue) 62% 58%);
-  border-bottom: 6px solid hsl(var(--hue) 62% 58%);
   border-radius: 3px;
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.4), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.45)),
-    hsl(var(--hue) 24% 30%);
+    linear-gradient(90deg, rgba(0, 0, 0, 0.4), transparent 20%, transparent 80%, rgba(0, 0, 0, 0.45)),
+    linear-gradient(180deg, var(--spine-top, #2a3040), var(--spine-bottom, #141822));
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.55);
   color: #f1f2f7;
   cursor: pointer;
@@ -2823,23 +2821,33 @@ a.metascore:hover {
   outline-offset: 3px;
 }
 
+/* 아래쪽 포인트 띠: 게임 대표색을 밝게 한 색 */
+.spine-foot {
+  flex: none;
+  width: 100%;
+  height: 12px;
+  border-radius: 0 0 3px 3px;
+  background: var(--spine-accent, #7c5cff);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.35);
+}
+
 .spine-icon {
   display: flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: calc(100% - 12px);
-  max-width: 60px;
+  width: 36px;
   aspect-ratio: 1;
-  margin: 8px 0 8px;
+  margin: 12px 0 8px;
   overflow: hidden;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.28);
   font-size: 24px;
   font-weight: 700;
 }
 
-/* 공식 아이콘은 정사각형(32×32)이라 자르지 않고 칸에 맞춰 키워서 보여 준다 */
+/* 공식 아이콘은 정사각형(32×32)이라 자르지 않고, 늘려서 깨지지 않도록 원본에 가까운 크기(36px)로 보여 준다 */
 .spine-icon img {
   width: 100%;
   height: 100%;
@@ -2849,12 +2857,88 @@ a.metascore:hover {
 .spine-title {
   flex: 1;
   min-height: 0;
+  /* 바깥 테두리가 잘리지 않도록 사방에 여유를 둔다 */
+  padding: 3px 4px 8px;
   overflow: hidden;
+  /* 글자 안은 검은색, 바깥 테두리는 게임 대표색(밝게)이라 어두운 바탕 위에서도 또렷하다 */
+  color: #000;
   font-size: 16px;
   font-weight: 700;
   text-overflow: ellipsis;
+  text-shadow:
+    -1px -1px 0 var(--spine-text, #fff),
+    1px -1px 0 var(--spine-text, #fff),
+    -1px 1px 0 var(--spine-text, #fff),
+    1px 1px 0 var(--spine-text, #fff),
+    0 -1.5px 0 var(--spine-text, #fff),
+    0 1.5px 0 var(--spine-text, #fff),
+    -1.5px 0 0 var(--spine-text, #fff),
+    1.5px 0 0 var(--spine-text, #fff);
   white-space: nowrap;
   writing-mode: vertical-rl;
+}
+
+/*
+ * 제목 폰트: 서버가 게임 태그로 정한 분위기에 따라 다르다. 영문 폰트를 앞에, 한글 폰트를 뒤에 두어
+ * 영문 제목과 한글 제목이 각각 그 분위기의 글꼴로 나온다. 글꼴마다 글자 폭이 달라 크기를 따로 맞췄다.
+ */
+.font-default {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.font-action {
+  font-family: Anton, 'Black Han Sans', 'Noto Sans KR', sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+.font-fantasy {
+  font-family: Cinzel, 'Nanum Myeongjo', serif;
+  font-size: 23px;
+  font-weight: 900;
+}
+
+.font-scifi {
+  font-family: Orbitron, 'Gothic A1', 'Noto Sans KR', sans-serif;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+/* 획이 가는 글꼴(굵기가 하나뿐)은 검은 글자가 가늘어 보여서 같은 색 테두리로 살짝 두껍게 한다 */
+.font-horror {
+  font-family: 'Special Elite', 'Song Myung', serif;
+  font-size: 25px;
+  font-weight: 400;
+  -webkit-text-stroke: 0.5px currentcolor;
+}
+
+.font-retro {
+  font-family: DotGothic16, Gugi, sans-serif;
+  font-size: 25px;
+  font-weight: 400;
+  -webkit-text-stroke: 0.7px currentcolor;
+}
+
+.font-cute {
+  font-family: Fredoka, Jua, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.font-sports {
+  font-family: 'Russo One', 'Black Han Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.font-strategy {
+  font-family: 'Roboto Slab', 'Gowun Batang', serif;
+  font-size: 23px;
+  font-weight: 900;
 }
 
 /* 마우스를 올린 책 바로 위에 뜨는 말풍선 (위치는 화면 기준이라 스크롤하면 사라진다) */

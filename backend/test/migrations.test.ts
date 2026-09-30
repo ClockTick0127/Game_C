@@ -23,7 +23,7 @@ describe('DB 마이그레이션', () => {
     const db = new DatabaseSync(':memory:');
     assert.equal(runMigrations(db), migrations.length);
     assert.equal(version(db), migrations.length);
-    assert.deepEqual(tables(db), ['favorites', 'library_orders', 'popular_games', 'sessions', 'users']);
+    assert.deepEqual(tables(db), ['favorites', 'game_styles', 'library_orders', 'popular_games', 'sessions', 'users']);
     assert.deepEqual(indexes(db), [
       'idx_popular_owners',
       'idx_sessions_expires_at',

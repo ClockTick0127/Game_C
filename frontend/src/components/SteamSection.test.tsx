@@ -32,6 +32,7 @@ const game = (appId: number, name: string, playtimeMinutes: number) => ({
   lastPlayedAt: null,
   image: `https://example.com/${appId}.jpg`,
   iconUrl: null,
+  persona: null,
 });
 
 beforeEach(() => {

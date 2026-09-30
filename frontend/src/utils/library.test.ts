@@ -9,6 +9,7 @@ const g = (appId: number, name: string, playtimeMinutes: number, lastPlayedAt: s
   lastPlayedAt,
   image: '',
   iconUrl: null,
+  persona: null,
 });
 
 const games = [

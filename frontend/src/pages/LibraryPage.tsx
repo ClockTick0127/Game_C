@@ -13,6 +13,8 @@ import { formatPlaytime } from '../utils/steam';
 
 /** 평소에 서재에 꽂아 두는 책 수. 배치를 바꿀 때는 옮길 자리가 화면 밖에 없도록 전부 꺼낸다 */
 const PAGE_SIZE = 150;
+/** 게임 분위기가 아직 다 안 채워졌을 때 다시 불러오는 간격 */
+const STYLE_REFRESH_MS = 15_000;
 
 type Where = 'shelf' | 'library';
 
@@ -56,6 +58,23 @@ export function LibraryPage() {
       .catch((err) => !controller.signal.aborted && setError(errorMessage(err)));
     return () => controller.abort();
   }, [linked, attempt]);
+
+  // 서버가 게임 분위기(책등 폰트)를 백그라운드에서 알아내는 동안에는 가끔 다시 불러와 반영한다. 배치 편집 중이어도 순서에는 영향이 없다
+  const stylesPending = data?.stylesPending ?? 0;
+  useEffect(() => {
+    if (!linked || stylesPending === 0) return;
+    const timer = setInterval(() => {
+      meApi
+        .fetchSteamGames()
+        .then((next) => {
+          if (!next.private) setData(next);
+        })
+        .catch(() => {
+          // 다음 주기에 다시 시도한다
+        });
+    }, STYLE_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [linked, stylesPending]);
 
   const retry = () => {
     setError(null);

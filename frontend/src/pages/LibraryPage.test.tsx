@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as authApi from '../api/auth';
 import * as meApi from '../api/me';
 import { testUser } from '../test/fixtures';
@@ -25,6 +25,7 @@ const game = (
   lastPlayedAt,
   image: `https://example.com/${appId}.jpg`,
   iconUrl: `https://example.com/icon-${appId}.jpg`,
+  persona: null,
 });
 
 // 플레이 시간 순: Terraria(1) > Portal(2) > Alpha(4) > Zero(3)
@@ -449,5 +450,103 @@ describe('LibraryPage — 배치 바꾸기', () => {
     renderLibrary();
     await screen.findByRole('button', { name: /^Portal,/ });
     expect(shelfNames()).toEqual(['Portal']);
+  });
+});
+
+describe('LibraryPage — 게임팩 책등', () => {
+  const spine = (name: string) => screen.getByRole('button', { name: new RegExp(`^${name},`) });
+
+  it('게임 분위기에 맞는 제목 폰트 클래스를 붙이고, 아직 모르는 게임은 기본 폰트다', async () => {
+    vi.mocked(meApi.fetchSteamGames).mockResolvedValue({
+      private: false,
+      games: [
+        { ...game(1, 'Elden', 600), persona: 'fantasy' },
+        game(2, 'Portal', 90),
+        { ...game(3, 'Neon', 5), persona: 'scifi' },
+      ],
+    });
+    renderLibrary();
+    await screen.findByRole('button', { name: /^Elden,/ });
+    expect(spine('Elden').querySelector('.spine-title')).toHaveClass('font-fantasy');
+    expect(spine('Neon').querySelector('.spine-title')).toHaveClass('font-scifi');
+    expect(spine('Portal').querySelector('.spine-title')).toHaveClass('font-default');
+  });
+
+  it('게임팩처럼 아래쪽에 포인트 띠가 있고, 위쪽 플랫폼 표시는 없다', async () => {
+    renderLibrary();
+    const book = await screen.findByRole('button', { name: /^Terraria,/ });
+    expect(book.querySelector('.spine-band')).toBeNull();
+    expect(book).not.toHaveTextContent('PC');
+    expect(book.querySelector('.spine-foot')).not.toBeNull();
+  });
+
+  it('책등 색을 CSS 변수로 넘긴다 (대표색을 아직 못 뽑았으면 게임마다 정해진 임시 색)', async () => {
+    renderLibrary();
+    const book = await screen.findByRole('button', { name: /^Terraria,/ });
+    for (const name of ['--spine-top', '--spine-bottom', '--spine-accent', '--spine-text']) {
+      expect(book.style.getPropertyValue(name)).toMatch(/^hsl\(/);
+    }
+    // 게임마다 색이 다르다
+    expect(spine('Portal').style.getPropertyValue('--spine-top')).not.toBe(book.style.getPropertyValue('--spine-top'));
+  });
+
+  describe('분위기를 서버가 알아내는 동안', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('주기적으로 다시 불러와 알아낸 분위기를 반영하고, 다 알아내면 그만 부른다', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+      vi.mocked(meApi.fetchSteamGames)
+        .mockResolvedValueOnce({ private: false, games: [game(1, 'Neon', 600)], stylesPending: 1 })
+        .mockResolvedValue({
+          private: false,
+          games: [{ ...game(1, 'Neon', 600), persona: 'scifi' }],
+          stylesPending: 0,
+        });
+      renderLibrary();
+      await screen.findByRole('button', { name: /^Neon,/ });
+      expect(spine('Neon').querySelector('.spine-title')).toHaveClass('font-default');
+      expect(meApi.fetchSteamGames).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(15_000);
+      await waitFor(() => expect(spine('Neon').querySelector('.spine-title')).toHaveClass('font-scifi'));
+      expect(meApi.fetchSteamGames).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(60_000); // 다 알아냈으니 더 부르지 않는다
+      expect(meApi.fetchSteamGames).toHaveBeenCalledTimes(2);
+    });
+
+    it('처음부터 다 알고 있으면 다시 불러오지 않는다', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+      vi.mocked(meApi.fetchSteamGames).mockResolvedValue({
+        private: false,
+        games: [{ ...game(1, 'Neon', 600), persona: 'scifi' }],
+        stylesPending: 0,
+      });
+      renderLibrary();
+      await screen.findByRole('button', { name: /^Neon,/ });
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(meApi.fetchSteamGames).toHaveBeenCalledTimes(1);
+    });
+
+    it('다시 불러오다 실패해도 화면은 그대로이고 다음 주기에 다시 시도한다', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+      vi.mocked(meApi.fetchSteamGames)
+        .mockResolvedValueOnce({ private: false, games: [game(1, 'Neon', 600)], stylesPending: 1 })
+        .mockRejectedValueOnce(new Error('일시 오류'))
+        .mockResolvedValue({
+          private: false,
+          games: [{ ...game(1, 'Neon', 600), persona: 'scifi' }],
+          stylesPending: 0,
+        });
+      renderLibrary();
+      await screen.findByRole('button', { name: /^Neon,/ });
+
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(spine('Neon')).toBeInTheDocument();
+      expect(screen.queryByText(/불러오지 못했습니다/)).not.toBeInTheDocument();
+
+      await vi.advanceTimersByTimeAsync(15_000);
+      await waitFor(() => expect(spine('Neon').querySelector('.spine-title')).toHaveClass('font-scifi'));
+    });
   });
 });

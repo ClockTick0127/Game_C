@@ -4,6 +4,8 @@ import { installFakeFetch, json, type ExternalHandler } from './fakeExternal.ts'
 import { startTestServer } from './helpers.ts';
 
 process.env.STEAM_API_KEY = 'test-steam-key';
+// 책등 폰트용 게임 분위기 조회는 이 파일의 검증 대상이 아니라서 외부 호출이 나가지 않게 끈다
+process.env.GAME_STYLES_DISABLED = '1';
 
 const STEAM_ID = '76561198000000001';
 const OTHER_STEAM_ID = '76561198000000002';
@@ -314,7 +316,7 @@ describe('보유 게임 · 업적', () => {
     withExternal((url) => (url.pathname === '/IPlayerService/GetOwnedGames/v1/' ? json({ response: {} }) : undefined));
     const b = await linked('76561198000000011');
     const res = await b.api('GET', '/api/me/steam/games');
-    assert.deepEqual(res.json, { private: true, games: [] });
+    assert.deepEqual(res.json, { private: true, games: [], stylesPending: 0 });
   });
 
   it('업적은 달성한 것이 먼저, 최근 달성 순으로 돌려준다', async () => {

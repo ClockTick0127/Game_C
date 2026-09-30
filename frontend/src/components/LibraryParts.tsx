@@ -1,6 +1,7 @@
 import { useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { SteamOwnedGame } from '../types';
-import { coverUrls, spineHue } from '../utils/library';
+import { useSpinePalette } from '../hooks/useSpinePalette';
+import { coverUrls } from '../utils/library';
 import { formatPlaytime } from '../utils/steam';
 
 /** 표지 이미지. 세로형 → 가로형 → 글자 순으로 물러난다 */
@@ -58,10 +59,19 @@ interface SpineProps extends PartProps {
   onPeek: (peek: { game: SteamOwnedGame; rect: DOMRect } | null) => void;
 }
 
-/** 서재에 꽂힌 책 한 권. 등이 보이도록 세워져 있고, 위에는 작은 그림, 아래는 비어 있다 */
+/**
+ * 서재에 꽂힌 게임팩 한 개. 등이 보이도록 세워져 있고, 위에는 게임 아이콘, 그 아래에 제목이 있다.
+ * 바탕색과 글자색은 게임의 대표색으로, 제목 폰트는 게임의 분위기(장르·태그)에 맞춰 정한다.
+ */
 export function BookSpine({ game, editing, held, onPress, onFlip, onKeyDown, onPeek }: SpineProps) {
   const [iconFailed, setIconFailed] = useState(false);
-  const style = { '--hue': spineHue(game.appId) } as CSSProperties;
+  const colors = useSpinePalette(game.appId);
+  const style = {
+    '--spine-top': colors.top,
+    '--spine-bottom': colors.bottom,
+    '--spine-accent': colors.accent,
+    '--spine-text': colors.text,
+  } as CSSProperties;
   return (
     <button
       type="button"
@@ -85,9 +95,10 @@ export function BookSpine({ game, editing, held, onPress, onFlip, onKeyDown, onP
           <img src={game.iconUrl} alt="" loading="lazy" draggable={false} onError={() => setIconFailed(true)} />
         )}
       </span>
-      <span className="spine-title" aria-hidden="true">
+      <span className={`spine-title font-${game.persona ?? 'default'}`} aria-hidden="true">
         {game.name}
       </span>
+      <span className="spine-foot" aria-hidden="true" />
     </button>
   );
 }

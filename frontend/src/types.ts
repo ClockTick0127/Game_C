@@ -38,12 +38,18 @@ export interface SteamOwnedGame {
   image: string;
   /** 정사각형 공식 게임 아이콘. 없는 게임은 null */
   iconUrl: string | null;
+  /** 게임의 분위기(책등 제목 폰트를 고른다). 서버가 아직 알아내지 못했으면 null */
+  persona: Persona | null;
 }
+
+export type Persona = 'horror' | 'scifi' | 'fantasy' | 'retro' | 'cute' | 'sports' | 'strategy' | 'action' | 'default';
 
 export interface SteamOwnedGames {
   /** true면 프로필의 게임 세부 정보가 비공개라 목록을 볼 수 없다 */
   private: boolean;
   games: SteamOwnedGame[];
+  /** 분위기를 아직 알아내지 못한 게임 수. 0보다 크면 서버가 백그라운드에서 알아내는 중이다 */
+  stylesPending?: number;
 }
 
 export interface SteamAchievement {

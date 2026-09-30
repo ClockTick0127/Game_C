@@ -109,6 +109,18 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 7,
+    description: '게임 분위기(서재 책등 폰트 선택용, SteamSpy 태그 기반)',
+    // 태그는 잘 바뀌지 않고 조회가 느려서(초당 1회 제한) 한 번 알아낸 결과를 계속 쓴다
+    sql: `
+      CREATE TABLE game_styles (
+        appid      INTEGER PRIMARY KEY,
+        persona    TEXT    NOT NULL,
+        checked_at INTEGER NOT NULL
+      );
+    `,
+  },
 ];
 
 function currentVersion(db: DatabaseSync): number {

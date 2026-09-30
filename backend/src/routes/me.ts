@@ -3,6 +3,7 @@ import { clearSessionCookie, currentUser, requireAuth } from '../middleware/auth
 import { getOrCreateCalendarToken, resetCalendarToken } from '../services/calendarFeed.ts';
 import { sensitiveLimiter, steamDataLimiter } from '../middleware/rateLimit.ts';
 import { addFavorite, listFavorites, removeFavorite } from '../services/favorites.ts';
+import { getPersonas, requestStyles } from '../services/gameStyle.ts';
 import { getLibraryOrder, parseLibraryOrder, saveLibraryOrder } from '../services/libraryOrder.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
 import { deleteOtherSessions } from '../services/sessions.ts';
@@ -114,7 +115,16 @@ meRouter.delete('/steam', (req, res) => {
 
 /** GET /api/me/steam/games — 보유 게임 (플레이 시간이 긴 순) */
 meRouter.get('/steam/games', steamDataLimiter, async (req, res) => {
-  res.json(await fetchOwnedGames(linkedSteamId(req)));
+  const owned = await fetchOwnedGames(linkedSteamId(req));
+  // 책등 폰트를 고를 게임 분위기. 아직 모르는 게임은 백그라운드에서 알아내고, 그동안은 null로 내려간다
+  const ids = owned.games.map((g) => g.appId);
+  const personas = getPersonas(ids);
+  requestStyles(ids.filter((id) => !personas.has(id)));
+  res.json({
+    ...owned,
+    games: owned.games.map((g) => ({ ...g, persona: personas.get(g.appId) ?? null })),
+    stylesPending: ids.length - personas.size,
+  });
 });
 
 /** GET /api/me/steam/games/:appId/achievements — 게임 하나의 업적 달성 현황 */

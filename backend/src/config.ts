@@ -35,5 +35,7 @@ export const ITUNES_MAX_CALLS_PER_MINUTE = Number(process.env.ITUNES_MAX_CALLS_P
 /** 인기 게임 수집 시 외부 API 호출 사이 간격(ms). SteamSpy는 초당 1회, Steam 스토어는 5분에 약 200회 제한이 있어 기본값을 그에 맞춘다 */
 export const POPULAR_STEAMSPY_GAP_MS = process.env.POPULAR_GAP_MS === '0' ? 0 : 1_100;
 export const POPULAR_STORE_GAP_MS = process.env.POPULAR_GAP_MS === '0' ? 0 : 1_600;
+/** 서재 책등 폰트를 고르는 게임 분위기 조회. 테스트에서는 GAME_STYLES_DISABLED=1로 끈다 */
+export const GAME_STYLES_ENABLED = process.env.GAME_STYLES_DISABLED !== '1';
 /** 요청 로그 사용 여부. 기본은 켜짐이며 LOG_REQUESTS=0으로 끈다 */
 export const LOG_REQUESTS = process.env.LOG_REQUESTS !== '0';
