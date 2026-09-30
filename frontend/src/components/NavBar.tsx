@@ -22,6 +22,7 @@ export function NavBar() {
   return (
     <header className="topbar">
       <Link to="/" className="brand">
+        <img src="/logo.svg" alt="" className="brand-logo" />
         게임 캘린더
       </Link>
       <nav className="topbar-nav topbar-menu">
