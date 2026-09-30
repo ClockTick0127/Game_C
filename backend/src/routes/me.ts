@@ -1,8 +1,9 @@
-import { Router, type Request } from 'express';
+import express, { Router, type Request } from 'express';
 import { clearSessionCookie, currentUser, requireAuth } from '../middleware/auth.ts';
 import { getOrCreateCalendarToken, resetCalendarToken } from '../services/calendarFeed.ts';
 import { sensitiveLimiter, steamDataLimiter } from '../middleware/rateLimit.ts';
 import { addFavorite, listFavorites, removeFavorite } from '../services/favorites.ts';
+import { getLibraryOrder, parseLibraryOrder, saveLibraryOrder } from '../services/libraryOrder.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
 import { deleteOtherSessions } from '../services/sessions.ts';
 import { fetchAchievements, fetchOwnedGames, fetchProfile, steamApiConfigured } from '../services/steamProfile.ts';
@@ -121,4 +122,17 @@ meRouter.get('/steam/games/:appId/achievements', steamDataLimiter, async (req, r
   const appId = Number(req.params.appId);
   if (!Number.isSafeInteger(appId) || appId <= 0) throw new HttpError(400, '게임 ID가 올바르지 않습니다.');
   res.json(await fetchAchievements(linkedSteamId(req), appId));
+});
+
+// --- 내 서재 배치 ---
+
+/** GET /api/me/library-order — 저장한 배치(앱 번호 목록). 저장한 적이 없으면 빈 배열 */
+meRouter.get('/library-order', (req, res) => {
+  res.json({ order: getLibraryOrder(currentUser(req).id) });
+});
+
+/** PUT /api/me/library-order { order: number[] } — 배치를 통째로 저장한다 */
+meRouter.put('/library-order', express.json({ limit: '300kb' }), (req, res) => {
+  saveLibraryOrder(currentUser(req).id, parseLibraryOrder(req.body?.order));
+  res.status(204).end();
 });

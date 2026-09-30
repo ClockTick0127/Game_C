@@ -97,6 +97,18 @@ export const migrations: Migration[] = [
       CREATE INDEX idx_popular_owners ON popular_games(owners_min DESC, ccu DESC);
     `,
   },
+  {
+    version: 6,
+    description: '내 서재 게임 배치(사용자가 직접 정한 순서)',
+    // 순서는 통째로 읽고 통째로 저장하므로 앱 번호 목록을 JSON 한 덩어리로 둔다
+    sql: `
+      CREATE TABLE library_orders (
+        user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        order_json TEXT    NOT NULL,
+        updated_at TEXT    NOT NULL
+      );
+    `,
+  },
 ];
 
 function currentVersion(db: DatabaseSync): number {

@@ -36,6 +36,8 @@ export interface SteamOwnedGame {
   playtimeMinutes: number;
   lastPlayedAt: string | null;
   image: string;
+  /** 정사각형 공식 게임 아이콘. 없는 게임은 null */
+  iconUrl: string | null;
 }
 
 export interface SteamOwnedGames {

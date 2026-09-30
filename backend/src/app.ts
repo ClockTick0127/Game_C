@@ -37,7 +37,9 @@ app.use(
 );
 app.use('/api', apiLimiter);
 app.use('/api', checkOrigin);
-app.use(express.json({ limit: '20kb' }));
+// 일반 요청 본문은 20kb로 제한한다. 서재 배치는 게임 수천 개의 번호를 담아서 그 라우트에서 따로 더 크게 받는다
+const smallJson = express.json({ limit: '20kb' });
+app.use((req, res, next) => (req.path === '/api/me/library-order' ? next() : smallJson(req, res, next)));
 app.use(loadUser);
 
 app.get('/api/health', (_req, res) => {

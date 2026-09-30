@@ -21,6 +21,8 @@ export interface OwnedGame {
   /** 마지막으로 플레이한 시각 (ISO 8601). 플레이한 적 없으면 null */
   lastPlayedAt: string | null;
   image: string;
+  /** 정사각형 공식 게임 아이콘(32×32). 없는 게임은 null */
+  iconUrl: string | null;
 }
 
 export interface OwnedGames {
@@ -97,6 +99,13 @@ export function fetchProfile(steamId: string): Promise<SteamProfile | null> {
   });
 }
 
+/** 아이콘 주소는 앱 번호와 해시로 만든다. 해시는 40자리 16진수일 때만 믿는다 (그대로 주소에 들어가므로) */
+function iconUrl(appId: number, hash: unknown): string | null {
+  return typeof hash === 'string' && /^[0-9a-f]{40}$/.test(hash)
+    ? `https://media.steampowered.com/steamcommunity/public/images/apps/${appId}/${hash}.jpg`
+    : null;
+}
+
 const gamesCache = createPromiseCache<string, OwnedGames>({ ttlMs: CACHE_TTL_MS, maxEntries: 500 });
 
 /** 보유 게임 목록 (플레이 시간이 긴 순) */
@@ -124,6 +133,7 @@ export function fetchOwnedGames(steamId: string): Promise<OwnedGames> {
         playtimeMinutes: typeof g.playtime_forever === 'number' ? g.playtime_forever : 0,
         lastPlayedAt: toIso(g.rtime_last_played),
         image: `https://cdn.akamai.steamstatic.com/steam/apps/${g.appid}/header.jpg`,
+        iconUrl: iconUrl(g.appid as number, g.img_icon_url),
       }))
       .sort((a, b) => b.playtimeMinutes - a.playtimeMinutes || a.name.localeCompare(b.name));
     return { private: false, games };

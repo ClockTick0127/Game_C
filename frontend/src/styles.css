@@ -2644,3 +2644,284 @@ a.metascore:hover {
     transform: none;
   }
 }
+
+/* 배치 바꾸기 */
+.library-edit-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--accent-soft);
+}
+
+.library-edit-bar p {
+  flex: 1 1 320px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.library-edit-bar .form-error {
+  flex-basis: 100%;
+}
+
+.library-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.shelf.editing li {
+  cursor: grab;
+}
+
+.shelf.editing .case:hover {
+  transform: none;
+}
+
+.shelf li.is-held .case {
+  z-index: 2;
+  filter: drop-shadow(0 0 10px var(--accent)) drop-shadow(0 14px 8px rgba(0, 0, 0, 0.6));
+  transform: translateY(-16px) scale(1.08);
+}
+
+/* 끌고 있는 상자를 놓을 자리 */
+.shelf li.is-over .case {
+  outline: 2px dashed var(--accent);
+  outline-offset: 6px;
+}
+
+/* 진열장 / 서재 제목 */
+.shelf-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 22px 0 10px;
+  font-size: 18px;
+}
+
+.shelf-empty {
+  margin: 0 0 8px;
+  padding: 22px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--text-dim);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* 편집 중 진열장 맨 끝에 꽂는 빈자리 */
+.case-slot {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  filter: none;
+  font-size: 28px;
+}
+
+.case-slot:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.case-slot:not(:disabled):hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.case-slot-label {
+  font-size: 12px;
+}
+
+/* 서재: 책등이 보이게 세워 꽂은 책 */
+.stacks {
+  --spine-w: 54px;
+  --spine-h: 240px;
+  --row: calc(var(--spine-h) + 46px);
+  display: grid;
+  grid-auto-rows: var(--row);
+  grid-template-columns: repeat(auto-fill, 62px);
+  justify-content: center;
+  margin: 0 0 6px;
+  padding: 10px 12px;
+  border: 1px solid #3a2a1d;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+        180deg,
+        transparent calc(100% - 16px),
+        #c08a55 calc(100% - 16px),
+        #a06a3c calc(100% - 15px),
+        #6b4423 calc(100% - 6px),
+        #4d3019 100%
+      )
+      0 10px / 100% var(--row) repeat-y,
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, #17110c, #211710);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.55);
+  list-style: none;
+}
+
+.stacks li {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 16px;
+}
+
+.spine {
+  --hue: 200;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--spine-w);
+  height: var(--spine-h);
+  padding: 0 0 6px;
+  border: 0;
+  border-top: 6px solid hsl(var(--hue) 62% 58%);
+  border-bottom: 6px solid hsl(var(--hue) 62% 58%);
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.4), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.45)),
+    hsl(var(--hue) 24% 30%);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.55);
+  color: #f1f2f7;
+  cursor: pointer;
+  transform-origin: bottom center;
+  transition: transform 0.16s ease;
+}
+
+.spine:hover,
+.spine:focus-visible {
+  transform: translateY(-12px);
+}
+
+/* 지금 가리키는 책 위에 표시가 나온다 */
+.spine:hover::before,
+.spine:focus-visible::before {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  border-top: 10px solid var(--accent);
+  border-right: 8px solid transparent;
+  border-left: 8px solid transparent;
+  transform: translateX(-50%);
+  content: '';
+}
+
+.spine:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.spine-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: 8px 0 6px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* 공식 아이콘은 정사각형(32×32)이라 자르지 않고 원래 크기로 보여 준다 */
+.spine-icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.spine-title {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+}
+
+.spine-no {
+  flex: none;
+  margin-top: 6px;
+  color: hsl(var(--hue) 70% 78%);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* 마우스를 올린 책 바로 위에 뜨는 말풍선 (위치는 화면 기준이라 스크롤하면 사라진다) */
+.spine-tip {
+  position: fixed;
+  z-index: 30;
+  max-width: 260px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(10, 12, 18, 0.96);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.4;
+  pointer-events: none;
+  text-align: center;
+  transform: translate(-50%, -100%);
+}
+
+.spine-tip strong {
+  display: block;
+}
+
+.spine-tip span {
+  color: #b9c1d6;
+  font-size: 12px;
+}
+
+/* 서재의 책도 편집 중에 집으면 뽑혀 나온다 */
+.stacks.editing li {
+  cursor: grab;
+}
+
+.stacks.editing .spine:hover {
+  transform: none;
+}
+
+.stacks li.is-held .spine {
+  z-index: 2;
+  box-shadow:
+    0 0 10px var(--accent),
+    0 10px 8px rgba(0, 0, 0, 0.6);
+  transform: translateY(-16px) scale(1.06);
+}
+
+@media (max-width: 520px) {
+  .stacks {
+    --spine-w: 46px;
+    --spine-h: 210px;
+    grid-template-columns: repeat(auto-fill, 52px);
+  }
+
+  .spine-icon {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spine {
+    transition: none;
+  }
+}

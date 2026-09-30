@@ -274,8 +274,14 @@ describe('보유 게임 · 업적', () => {
             response: {
               game_count: 2,
               games: [
-                { appid: 10, name: 'Short', playtime_forever: 30, rtime_last_played: 0 },
-                { appid: 20, name: 'Long', playtime_forever: 600, rtime_last_played: 1_700_000_000 },
+                { appid: 10, name: 'Short', playtime_forever: 30, rtime_last_played: 0, img_icon_url: 'not-a-hash' },
+                {
+                  appid: 20,
+                  name: 'Long',
+                  playtime_forever: 600,
+                  rtime_last_played: 1_700_000_000,
+                  img_icon_url: 'a'.repeat(40),
+                },
               ],
             },
           })
@@ -292,6 +298,12 @@ describe('보유 게임 · 업적', () => {
     );
     assert.equal(res.json.games[0].lastPlayedAt, '2023-11-14T22:13:20.000Z');
     assert.equal(res.json.games[1].lastPlayedAt, null);
+    // 정사각형 공식 아이콘: 해시 형식이 올바를 때만 주소를 만든다
+    assert.equal(
+      res.json.games[0].iconUrl,
+      `https://media.steampowered.com/steamcommunity/public/images/apps/20/${'a'.repeat(40)}.jpg`,
+    );
+    assert.equal(res.json.games[1].iconUrl, null);
     const call = f.callsTo('api.steampowered.com')[0]!;
     assert.equal(call.searchParams.get('steamid'), '76561198000000010');
     assert.equal(call.searchParams.get('key'), 'test-steam-key');

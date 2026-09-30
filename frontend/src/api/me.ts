@@ -49,3 +49,12 @@ export function fetchSteamGames(): Promise<SteamOwnedGames> {
 export function fetchSteamAchievements(appId: number): Promise<SteamAchievements> {
   return request(`/api/me/steam/games/${appId}/achievements`);
 }
+
+/** 저장한 서재 배치(앱 번호 목록). 저장한 적이 없으면 빈 배열 */
+export function fetchLibraryOrder(): Promise<{ order: number[] }> {
+  return request('/api/me/library-order');
+}
+
+export function saveLibraryOrder(order: number[]): Promise<void> {
+  return request('/api/me/library-order', { method: 'PUT', body: { order } });
+}
