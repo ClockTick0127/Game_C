@@ -1,10 +1,14 @@
 import express, { Router, type Request } from 'express';
 import { clearSessionCookie, currentUser, requireAuth } from '../middleware/auth.ts';
 import { getOrCreateCalendarToken, resetCalendarToken } from '../services/calendarFeed.ts';
-import { sensitiveLimiter, steamDataLimiter } from '../middleware/rateLimit.ts';
+import { gamesLimiter, sensitiveLimiter, steamDataLimiter } from '../middleware/rateLimit.ts';
 import { addFavorite, listFavorites, removeFavorite } from '../services/favorites.ts';
+import { addCustomGame, listCustomGames, parseCustomGame, removeCustomGame } from '../services/customLibrary.ts';
 import { getPersonas, requestStyles } from '../services/gameStyle.ts';
 import { getLibraryOrder, parseLibraryOrder, saveLibraryOrder } from '../services/libraryOrder.ts';
+import { hasHangul, searchGamesKorean } from '../services/koreanSearch.ts';
+import { searchGames } from '../services/rawg.ts';
+import { IS_SAMPLE_MODE } from '../services/releases.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
 import { deleteOtherSessions } from '../services/sessions.ts';
 import { fetchAchievements, fetchOwnedGames, fetchProfile, steamApiConfigured } from '../services/steamProfile.ts';
@@ -144,5 +148,34 @@ meRouter.get('/library-order', (req, res) => {
 /** PUT /api/me/library-order { order: number[] } — 배치를 통째로 저장한다 */
 meRouter.put('/library-order', express.json({ limit: '300kb' }), (req, res) => {
   saveLibraryOrder(currentUser(req).id, parseLibraryOrder(req.body?.order));
+  res.status(204).end();
+});
+
+// --- 내 서재에 직접 추가한 게임 ---
+
+/** GET /api/me/library-games — 직접 추가한 게임 (추가한 순서) */
+meRouter.get('/library-games', (req, res) => {
+  res.json({ games: listCustomGames(currentUser(req).id) });
+});
+
+/** GET /api/me/library-games/search?q=... — 추가할 게임 검색 (RAWG) */
+meRouter.get('/library-games/search', gamesLimiter, async (req, res) => {
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (!q || q.length > 100) throw new HttpError(400, '검색어를 1~100자로 입력하세요.');
+  if (IS_SAMPLE_MODE) throw new HttpError(503, '샘플 모드에서는 게임을 검색할 수 없습니다.');
+  res.json({ games: hasHangul(q) ? await searchGamesKorean(q) : await searchGames(q) });
+});
+
+/** PUT /api/me/library-games/:gameId { id, name, image } — 여러 번 호출해도 결과가 같다 */
+meRouter.put('/library-games/:gameId', (req, res) => {
+  const game = parseCustomGame(req.body);
+  if (game.id !== parseGameId(req.params.gameId)) throw new HttpError(400, '게임 ID가 일치하지 않습니다.');
+  addCustomGame(currentUser(req).id, game);
+  res.status(204).end();
+});
+
+/** DELETE /api/me/library-games/:gameId */
+meRouter.delete('/library-games/:gameId', (req, res) => {
+  removeCustomGame(currentUser(req).id, parseGameId(req.params.gameId));
   res.status(204).end();
 });

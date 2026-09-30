@@ -1,12 +1,11 @@
 import { useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { SteamOwnedGame } from '../types';
 import { useSpinePalette } from '../hooks/useSpinePalette';
-import { coverUrls } from '../utils/library';
-import { formatPlaytime } from '../utils/steam';
+import { coverUrls, playtimeLabel } from '../utils/library';
 
 /** 표지 이미지. 세로형 → 가로형 → 글자 순으로 물러난다 */
 export function Cover({ game }: { game: SteamOwnedGame }) {
-  const urls = coverUrls(game.appId);
+  const urls = game.custom ? (game.coverUrl ? [game.coverUrl] : []) : coverUrls(game.appId);
   const [stage, setStage] = useState(0);
   if (stage >= urls.length) {
     return (
@@ -38,7 +37,7 @@ export function GameCase({ game, editing, held, onPress, onFlip, onKeyDown }: Pa
       onClick={onPress}
       onDoubleClick={onFlip}
       onKeyDown={onKeyDown}
-      aria-label={`${game.name}, ${formatPlaytime(game.playtimeMinutes)}`}
+      aria-label={`${game.name}, ${playtimeLabel(game)}`}
       aria-pressed={editing ? held : undefined}
     >
       <span className="case-spine" aria-hidden="true" />
@@ -47,7 +46,7 @@ export function GameCase({ game, editing, held, onPress, onFlip, onKeyDown }: Pa
         <span className="case-shine" aria-hidden="true" />
         <span className="case-caption" aria-hidden="true">
           <strong>{game.name}</strong>
-          <span>{formatPlaytime(game.playtimeMinutes)}</span>
+          <span>{playtimeLabel(game)}</span>
         </span>
       </span>
     </button>
@@ -65,7 +64,7 @@ interface SpineProps extends PartProps {
  */
 export function BookSpine({ game, editing, held, onPress, onFlip, onKeyDown, onPeek }: SpineProps) {
   const [iconFailed, setIconFailed] = useState(false);
-  const colors = useSpinePalette(game.appId);
+  const colors = useSpinePalette(game.appId, game.coverUrl);
   const style = {
     '--spine-top': colors.top,
     '--spine-bottom': colors.bottom,
@@ -85,7 +84,7 @@ export function BookSpine({ game, editing, held, onPress, onFlip, onKeyDown, onP
       onMouseLeave={() => onPeek(null)}
       onFocus={(e) => onPeek({ game, rect: e.currentTarget.getBoundingClientRect() })}
       onBlur={() => onPeek(null)}
-      aria-label={`${game.name}, ${formatPlaytime(game.playtimeMinutes)}`}
+      aria-label={`${game.name}, ${playtimeLabel(game)}`}
       aria-pressed={editing ? held : undefined}
     >
       <span className="spine-icon" aria-hidden="true">

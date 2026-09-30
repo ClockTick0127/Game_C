@@ -121,6 +121,20 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 8,
+    description: '내 서재에 직접 추가한 게임 (RAWG 검색)',
+    sql: `
+      CREATE TABLE custom_library_games (
+        user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        game_id  INTEGER NOT NULL,
+        name     TEXT    NOT NULL,
+        image    TEXT,
+        added_at TEXT    NOT NULL,
+        PRIMARY KEY (user_id, game_id)
+      );
+    `,
+  },
 ];
 
 function currentVersion(db: DatabaseSync): number {

@@ -1,4 +1,5 @@
-import type { SteamOwnedGame } from '../types';
+import { formatPlaytime } from './steam';
+import type { CustomGame, SteamOwnedGame } from '../types';
 
 export type LibrarySort = 'playtime' | 'recent' | 'name';
 
@@ -13,6 +14,35 @@ export const coverUrls = (appId: number) => [
   `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`,
   `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`,
 ];
+
+/**
+ * 직접 추가한 게임의 서재 번호. RAWG 번호에 큰 수를 더해 Steam 앱 번호와 겹치지 않게 한다
+ * (배치 목록이 두 종류를 한 줄로 저장하기 때문이다).
+ */
+export const CUSTOM_ID_BASE = 1_000_000_000;
+
+export const toLibraryId = (rawgId: number) => CUSTOM_ID_BASE + rawgId;
+export const isCustomId = (id: number) => id >= CUSTOM_ID_BASE;
+export const toRawgId = (id: number) => id - CUSTOM_ID_BASE;
+
+/** 직접 추가한 게임을 서재에서 쓰는 게임 모양으로 바꾼다 */
+export function customToOwned(game: CustomGame): SteamOwnedGame {
+  return {
+    appId: toLibraryId(game.id),
+    name: game.name,
+    playtimeMinutes: 0,
+    lastPlayedAt: null,
+    image: game.image ?? '',
+    iconUrl: game.image,
+    persona: null,
+    custom: true,
+    coverUrl: game.image,
+  };
+}
+
+/** 상자·책에 붙는 플레이 시간 문구. 직접 추가한 게임은 기록이 없으니 그렇게 알린다 */
+export const playtimeLabel = (game: SteamOwnedGame) =>
+  game.custom ? '직접 추가한 게임' : formatPlaytime(game.playtimeMinutes);
 
 /** 게임마다 정해지는 책등 색상(0~359). 같은 게임은 항상 같은 색이다 */
 export function spineHue(appId: number): number {

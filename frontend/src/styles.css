@@ -2452,12 +2452,13 @@ a.metascore:hover {
 
 .shelf {
   /* 상자 크기가 정해져 있어 한 줄의 높이도 정해진다. 선반은 그 높이마다 배경으로 깔아서 마지막 줄도 끝까지 이어진다 */
-  --case-w: 132px;
+  /* 아래 서재의 책등(340px)보다 진열된 상자가 작아 보이지 않도록 더 크게 */
+  --case-w: 260px;
   --case-h: calc(var(--case-w) * 1.4);
   --row: calc(var(--case-h) + 42px);
   display: grid;
   grid-auto-rows: var(--row);
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   margin: 0 0 16px;
   padding: 8px 10px;
   border: 1px solid #3a2a1d;
@@ -2625,11 +2626,11 @@ a.metascore:hover {
 
 @media (max-width: 520px) {
   .shelf {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   }
 
   .shelf {
-    --case-w: 108px;
+    --case-w: 160px;
   }
 }
 
@@ -3006,4 +3007,55 @@ a.metascore:hover {
   .spine {
     transition: none;
   }
+}
+
+/* 게임 추가 창 */
+.add-game-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.add-game-form .filter-search {
+  flex: 1;
+}
+
+.add-game-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 50vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.add-game-results li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-game-results img,
+.add-game-noimg {
+  flex: none;
+  width: 64px;
+  height: 40px;
+  border-radius: 4px;
+  background: #111;
+  object-fit: cover;
+}
+
+.add-game-results li > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.add-game-results strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

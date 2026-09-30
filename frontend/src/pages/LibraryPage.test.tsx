@@ -50,6 +50,7 @@ beforeEach(() => {
   vi.mocked(meApi.fetchFavorites).mockResolvedValue({ games: [] });
   vi.mocked(meApi.fetchLibraryOrder).mockResolvedValue({ order: [] });
   vi.mocked(meApi.saveLibraryOrder).mockResolvedValue(undefined);
+  vi.mocked(meApi.fetchCustomGames).mockResolvedValue({ games: [] });
   vi.mocked(meApi.fetchSteamGames).mockResolvedValue({ private: false, games: GAMES });
 });
 
@@ -548,5 +549,48 @@ describe('LibraryPage — 게임팩 책등', () => {
       await vi.advanceTimersByTimeAsync(15_000);
       await waitFor(() => expect(spine('Neon').querySelector('.spine-title')).toHaveClass('font-scifi'));
     });
+  });
+});
+
+describe('LibraryPage — 직접 추가한 게임', () => {
+  const searched = {
+    id: 3498,
+    name: 'Grand Theft Auto V',
+    released: '2013-09-17',
+    image: 'https://media.rawg.io/a.jpg',
+    rating: 4,
+    metacritic: null,
+    platforms: ['PC', 'PlayStation 5'],
+    genres: [],
+    url: null,
+  };
+
+  it('저장해 둔 게임이 Steam 게임과 함께 서재에 꽂히고, 눌러서 서재에서 뺄 수 있다', async () => {
+    vi.mocked(meApi.fetchCustomGames).mockResolvedValue({
+      games: [{ id: 3498, name: searched.name, image: searched.image }],
+    });
+    vi.mocked(meApi.removeCustomGame).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderLibrary();
+    await user.click(await screen.findByRole('button', { name: /^Grand Theft Auto V,/ }));
+    await user.click(screen.getByRole('button', { name: '서재에서 빼기' }));
+
+    await waitFor(() => expect(meApi.removeCustomGame).toHaveBeenCalledWith(3498));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^Grand Theft Auto V,/ })).not.toBeInTheDocument());
+  });
+
+  it('게임을 검색해서 추가하면 서재에 꽂힌다', async () => {
+    vi.mocked(meApi.searchLibraryGames).mockResolvedValue({ games: [searched] });
+    vi.mocked(meApi.addCustomGame).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderLibrary();
+    await user.click(await screen.findByRole('button', { name: '게임 추가' }));
+    await user.type(screen.getByRole('searchbox', { name: '추가할 게임 검색' }), 'gta{Enter}');
+    await user.click(await screen.findByRole('button', { name: '추가' }));
+
+    expect(meApi.addCustomGame).toHaveBeenCalledWith({ id: 3498, name: searched.name, image: searched.image });
+    expect(await screen.findByRole('button', { name: '추가됨' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /닫기|close/i }));
+    expect(screen.getByRole('button', { name: /^Grand Theft Auto V,/ })).toBeInTheDocument();
   });
 });

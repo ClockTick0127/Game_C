@@ -269,3 +269,9 @@ export async function searchGameByName(name: string, year?: number): Promise<Gam
     data.results[0];
   return match ? normalize(match) : null;
 }
+
+/** 이름으로 게임 여러 개를 찾는다 (서재에 직접 추가할 게임을 고르는 용도). 성인 게임은 뺀다 */
+export async function searchGames(query: string): Promise<Game[]> {
+  const data = await rawgGet<RawgListResponse>('/games', { search: query, page_size: '12' });
+  return data.results.filter((g) => !isAdultGame(g)).map(normalize);
+}

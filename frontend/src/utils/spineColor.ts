@@ -150,7 +150,7 @@ let active = 0;
 const waiting: (() => void)[] = [];
 const pending = new Map<number, Promise<Palette | null>>();
 
-function measure(appId: number): Promise<Palette | null> {
+function measure(appId: number, imageUrl?: string | null): Promise<Palette | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -168,12 +168,12 @@ function measure(appId: number): Promise<Palette | null> {
       }
     };
     img.onerror = () => resolve(null);
-    img.src = capsuleUrl(appId);
+    img.src = imageUrl ?? capsuleUrl(appId);
   });
 }
 
 /** 게임의 대표색을 뽑아서(같은 게임은 한 번만) 브라우저에 저장한다. 이미지가 없거나 읽을 수 없으면 null */
-export function loadPalette(appId: number): Promise<Palette | null> {
+export function loadPalette(appId: number, imageUrl?: string | null): Promise<Palette | null> {
   const known = peekPalette(appId);
   if (known) return Promise.resolve(known);
   const running = pending.get(appId);
@@ -183,7 +183,7 @@ export function loadPalette(appId: number): Promise<Palette | null> {
     if (active >= MAX_ACTIVE) await new Promise<void>((resolve) => waiting.push(resolve));
     active++;
     try {
-      const palette = await measure(appId);
+      const palette = await measure(appId, imageUrl);
       if (palette && Object.keys(store()).length < MAX_STORED) {
         store()[appId] = palette;
         persist();

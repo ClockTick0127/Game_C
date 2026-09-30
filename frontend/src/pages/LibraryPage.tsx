@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { Link } from 'react-router';
 import { errorMessage } from '../api/client';
 import * as meApi from '../api/me';
@@ -7,8 +7,19 @@ import { Modal } from '../components/Modal';
 import { SteamAchievementList } from '../components/SteamSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import type { SteamOwnedGame, SteamOwnedGames } from '../types';
-import { filterAndSort, formatTotalHours, placeAt, removeFrom, SORT_LABELS, type LibrarySort } from '../utils/library';
+import type { CustomGame, Game, SteamOwnedGame, SteamOwnedGames } from '../types';
+import {
+  customToOwned,
+  filterAndSort,
+  formatTotalHours,
+  placeAt,
+  playtimeLabel,
+  removeFrom,
+  SORT_LABELS,
+  toLibraryId,
+  toRawgId,
+  type LibrarySort,
+} from '../utils/library';
 import { formatPlaytime } from '../utils/steam';
 
 /** 평소에 서재에 꽂아 두는 책 수. 배치를 바꿀 때는 옮길 자리가 화면 밖에 없도록 전부 꺼낸다 */
@@ -25,6 +36,9 @@ export function LibraryPage() {
   const [data, setData] = useState<SteamOwnedGames | null>(null);
   /** 진열장에 전시한 게임 (앱 번호, 내가 정한 순서). 나머지는 서재에 자동 정렬로 꽂힌다 */
   const [shelfIds, setShelfIds] = useState<number[]>([]);
+  /** 검색해서 직접 추가한 게임. Steam 게임과 함께 서재에 꽂힌다 */
+  const [customGames, setCustomGames] = useState<CustomGame[]>([]);
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<LibrarySort>('playtime');
@@ -49,11 +63,16 @@ export function LibraryPage() {
     if (!linked) return;
     const controller = new AbortController();
     // 진열장 배치를 못 불러와도 서재는 보여 준다 (진열장은 빈 채로)
-    Promise.all([meApi.fetchSteamGames(), meApi.fetchLibraryOrder().catch(() => ({ order: [] as number[] }))])
-      .then(([games, saved]) => {
+    Promise.all([
+      meApi.fetchSteamGames(),
+      meApi.fetchLibraryOrder().catch(() => ({ order: [] as number[] })),
+      meApi.fetchCustomGames().catch(() => ({ games: [] as CustomGame[] })),
+    ])
+      .then(([games, saved, custom]) => {
         if (controller.signal.aborted) return;
         setData(games);
         setShelfIds(saved.order);
+        setCustomGames(custom.games);
       })
       .catch((err) => !controller.signal.aborted && setError(errorMessage(err)));
     return () => controller.abort();
@@ -81,7 +100,9 @@ export function LibraryPage() {
     setAttempt(attempt + 1);
   };
 
-  const byId = useMemo(() => new Map(data?.games.map((g) => [g.appId, g]) ?? []), [data]);
+  // Steam 게임과 직접 추가한 게임을 한 서재로 합친다
+  const allGames = useMemo(() => [...(data?.games ?? []), ...customGames.map(customToOwned)], [data, customGames]);
+  const byId = useMemo(() => new Map(allGames.map((g) => [g.appId, g])), [allGames]);
   const currentShelf = editing ? draft : shelfIds;
   // 더 이상 갖고 있지 않은 게임은 진열장에서 빠진다
   const shelfGames = useMemo(() => currentShelf.flatMap((id) => byId.get(id) ?? []), [currentShelf, byId]);
@@ -90,11 +111,11 @@ export function LibraryPage() {
     const onShelf = new Set(currentShelf);
     // 편집 중에는 검색어를 무시하고 전체를 대상으로 한다
     return filterAndSort(
-      data.games.filter((g) => !onShelf.has(g.appId)),
+      allGames.filter((g) => !onShelf.has(g.appId)),
       editing ? '' : query,
       sort,
     );
-  }, [data, currentShelf, editing, query, sort]);
+  }, [data, allGames, currentShelf, editing, query, sort]);
   const totalMinutes = useMemo(() => data?.games.reduce((sum, g) => sum + g.playtimeMinutes, 0) ?? 0, [data]);
   const visibleLibrary = editing ? libraryGames : libraryGames.slice(0, shown);
 
@@ -240,6 +261,27 @@ export function LibraryPage() {
     },
   };
 
+  /** 검색에서 고른 게임을 서재에 꽂는다. 서버에 저장된 뒤에야 화면에 나타난다 */
+  const addCustom = async (game: CustomGame) => {
+    await meApi.addCustomGame(game);
+    setCustomGames((list) => (list.some((g) => g.id === game.id) ? list : [...list, game]));
+  };
+
+  /** 직접 추가한 게임을 서재에서 뺀다. 진열장에 있었다면 배치에서도 지운다 */
+  const removeCustom = async (game: SteamOwnedGame) => {
+    const rawgId = toRawgId(game.appId);
+    await meApi.removeCustomGame(rawgId);
+    setCustomGames((list) => list.filter((g) => g.id !== rawgId));
+    if (shelfIds.includes(game.appId)) {
+      const next = removeFrom(shelfIds, game.appId);
+      setShelfIds(next);
+      meApi.saveLibraryOrder(next).catch(() => {
+        // 진열장에서는 이미 사라져 보이고, 다음에 배치를 저장할 때 정리된다
+      });
+    }
+    setSelected(null);
+  };
+
   const heldOnShelf = held !== null && whereIs(held) === 'shelf';
   const classNames = (...names: (string | false)[]) => names.filter(Boolean).join(' ');
 
@@ -272,9 +314,14 @@ export function LibraryPage() {
             주세요. (Steam → 프로필 편집 → 개인정보 보호 설정)
           </p>
         </div>
-      ) : data.games.length === 0 ? (
+      ) : allGames.length === 0 ? (
         <div className="card">
-          <p className="muted">아직 서재가 비어 있어요. Steam에서 게임을 담으면 여기에 꽂혀요.</p>
+          <p className="muted">
+            아직 서재가 비어 있어요. Steam에서 게임을 담거나 직접 꽂아 보세요.{' '}
+            <button type="button" className="btn btn-sm" onClick={() => setAdding(true)}>
+              게임 추가
+            </button>
+          </p>
         </div>
       ) : (
         <>
@@ -364,8 +411,11 @@ export function LibraryPage() {
               <button type="button" className="btn btn-sm" onClick={startEdit}>
                 배치 바꾸기
               </button>
+              <button type="button" className="btn btn-sm" onClick={() => setAdding(true)}>
+                게임 추가
+              </button>
               <span className="filter-result">
-                게임 {data.games.length.toLocaleString('ko-KR')}개 · 총 {formatTotalHours(totalMinutes)} 플레이
+                게임 {allGames.length.toLocaleString('ko-KR')}개 · 총 {formatTotalHours(totalMinutes)} 플레이
               </span>
             </div>
           )}
@@ -456,7 +506,21 @@ export function LibraryPage() {
       )}
 
       {peek && <SpineTip game={peek.game} rect={peek.rect} />}
-      {selected && <GameModal game={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <GameModal
+          game={selected}
+          onClose={() => setSelected(null)}
+          onRemove={selected.custom ? removeCustom : undefined}
+        />
+      )}
+      {adding && (
+        <AddGameModal
+          added={new Set(customGames.map((g) => toLibraryId(g.id)))}
+          owned={new Set(data?.games.map((g) => g.name.toLowerCase()))}
+          onAdd={addCustom}
+          onClose={() => setAdding(false)}
+        />
+      )}
     </div>
   );
 }
@@ -474,12 +538,33 @@ function SpineTip({ game, rect }: { game: SteamOwnedGame; rect: DOMRect }) {
       style={{ left, top: below ? rect.bottom + 12 : rect.top - 30, transform: below ? 'translateX(-50%)' : undefined }}
     >
       <strong>{game.name}</strong>
-      <span>{formatPlaytime(game.playtimeMinutes)}</span>
+      <span>{playtimeLabel(game)}</span>
     </div>
   );
 }
 
-function GameModal({ game, onClose }: { game: SteamOwnedGame; onClose: () => void }) {
+function GameModal({
+  game,
+  onClose,
+  onRemove,
+}: {
+  game: SteamOwnedGame;
+  onClose: () => void;
+  /** 직접 추가한 게임일 때만 있다 */
+  onRemove?: (game: SteamOwnedGame) => Promise<void>;
+}) {
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const remove = async () => {
+    setRemoving(true);
+    setRemoveError(null);
+    try {
+      await onRemove?.(game);
+    } catch (err) {
+      setRemoveError(errorMessage(err));
+      setRemoving(false);
+    }
+  };
   return (
     <Modal title={game.name} onClose={onClose} className="library-modal">
       <div className="library-modal-head">
@@ -493,15 +578,125 @@ function GameModal({ game, onClose }: { game: SteamOwnedGame; onClose: () => voi
         <div>
           <h2>{game.name}</h2>
           <p className="muted">
-            플레이 시간 {formatPlaytime(game.playtimeMinutes)}
+            {game.custom ? '직접 추가한 게임' : `플레이 시간 ${formatPlaytime(game.playtimeMinutes)}`}
             {game.lastPlayedAt && ` · 마지막 플레이 ${new Date(game.lastPlayedAt).toLocaleDateString('ko-KR')}`}
           </p>
-          <a href={`https://store.steampowered.com/app/${game.appId}/`} target="_blank" rel="noreferrer">
-            Steam 스토어에서 보기
-          </a>
+          {game.custom ? (
+            <>
+              <button type="button" className="btn btn-sm" onClick={remove} disabled={removing}>
+                {removing ? '빼는 중…' : '서재에서 빼기'}
+              </button>
+              {removeError && <p className="form-error">{removeError}</p>}
+            </>
+          ) : (
+            <a href={`https://store.steampowered.com/app/${game.appId}/`} target="_blank" rel="noreferrer">
+              Steam 스토어에서 보기
+            </a>
+          )}
         </div>
       </div>
-      <SteamAchievementList appId={game.appId} />
+      {game.custom ? (
+        <p className="muted">직접 추가한 게임은 플레이 시간과 업적을 볼 수 없어요.</p>
+      ) : (
+        <SteamAchievementList appId={game.appId} />
+      )}
+    </Modal>
+  );
+}
+
+/** 게임을 검색해서 서재에 꽂는 창 */
+function AddGameModal({
+  added,
+  owned,
+  onAdd,
+  onClose,
+}: {
+  /** 이미 직접 추가한 게임의 서재 번호 */
+  added: Set<number>;
+  /** Steam으로 이미 갖고 있는 게임 이름(소문자). 같은 이름이면 중복이라고 알린다 */
+  owned: Set<string>;
+  onAdd: (game: CustomGame) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Game[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const search = async (e: FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    setSearching(true);
+    setError(null);
+    try {
+      setResults((await meApi.searchLibraryGames(q)).games);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const add = async (game: Game) => {
+    setBusyId(game.id);
+    setError(null);
+    try {
+      await onAdd({ id: game.id, name: game.name, image: game.image });
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <Modal title="게임 추가" onClose={onClose} className="library-modal">
+      <h2>게임 추가</h2>
+      <form className="add-game-form" onSubmit={search} role="search">
+        <input
+          className="filter-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="서재에 꽂을 게임 이름"
+          aria-label="추가할 게임 검색"
+          maxLength={100}
+        />
+        <button type="submit" className="btn btn-primary btn-sm" disabled={searching || !query.trim()}>
+          {searching ? '찾는 중…' : '검색'}
+        </button>
+      </form>
+      {error && <p className="form-error">{error}</p>}
+      {results && results.length === 0 && <p className="muted">검색 결과가 없어요.</p>}
+      {results && results.length > 0 && (
+        <ul className="add-game-results">
+          {results.map((game) => {
+            const done = added.has(toLibraryId(game.id));
+            const steam = owned.has(game.name.toLowerCase());
+            return (
+              <li key={game.id}>
+                {game.image ? <img src={game.image} alt="" loading="lazy" /> : <span className="add-game-noimg" />}
+                <div>
+                  <strong>{game.name}</strong>
+                  <span className="muted">
+                    {[game.released.slice(0, 4), game.platforms.slice(0, 3).join(', ')].filter(Boolean).join(' · ')}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => add(game)}
+                  disabled={done || steam || busyId === game.id}
+                >
+                  {done ? '추가됨' : steam ? 'Steam에 있음' : busyId === game.id ? '추가 중…' : '추가'}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </Modal>
   );
 }

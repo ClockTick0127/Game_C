@@ -40,6 +40,18 @@ export interface SteamOwnedGame {
   iconUrl: string | null;
   /** 게임의 분위기(책등 제목 폰트를 고른다). 서버가 아직 알아내지 못했으면 null */
   persona: Persona | null;
+  /** 직접 추가한 게임(Steam 보유 게임이 아님)이면 true. 플레이 시간·업적이 없다 */
+  custom?: boolean;
+  /** 직접 추가한 게임의 표지 이미지 */
+  coverUrl?: string | null;
+}
+
+/** 내 서재에 직접 추가한 게임 (RAWG 검색 결과에서 고른 것) */
+export interface CustomGame {
+  /** RAWG 게임 번호 */
+  id: number;
+  name: string;
+  image: string | null;
 }
 
 export type Persona = 'horror' | 'scifi' | 'fantasy' | 'retro' | 'cute' | 'sports' | 'strategy' | 'action' | 'default';

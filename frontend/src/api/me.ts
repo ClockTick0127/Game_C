@@ -1,4 +1,4 @@
-import type { Game, SteamAchievements, SteamOwnedGames, SteamStatus, User } from '../types';
+import type { CustomGame, Game, SteamAchievements, SteamOwnedGames, SteamStatus, User } from '../types';
 import { request } from './client';
 
 export function updateNickname(nickname: string): Promise<{ user: User }> {
@@ -57,4 +57,20 @@ export function fetchLibraryOrder(): Promise<{ order: number[] }> {
 
 export function saveLibraryOrder(order: number[]): Promise<void> {
   return request('/api/me/library-order', { method: 'PUT', body: { order } });
+}
+
+export function fetchCustomGames(): Promise<{ games: CustomGame[] }> {
+  return request('/api/me/library-games');
+}
+
+export function searchLibraryGames(q: string): Promise<{ games: Game[] }> {
+  return request(`/api/me/library-games/search?q=${encodeURIComponent(q)}`);
+}
+
+export function addCustomGame(game: CustomGame): Promise<void> {
+  return request(`/api/me/library-games/${game.id}`, { method: 'PUT', body: game });
+}
+
+export function removeCustomGame(gameId: number): Promise<void> {
+  return request(`/api/me/library-games/${gameId}`, { method: 'DELETE' });
 }
