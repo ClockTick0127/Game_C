@@ -6,3 +6,6 @@ dist
 
 # SQLite DB (계정, 세션, 관심 게임)
 backend/data/
+
+# TypeScript 타입체크 캐시
+*.tsbuildinfo
