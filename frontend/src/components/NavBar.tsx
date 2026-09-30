@@ -27,9 +27,17 @@ export function NavBar() {
         <NavLink to="/" end className="nav-link">
           캘린더
         </NavLink>
+        <NavLink to="/popular" className="nav-link">
+          인기 게임
+        </NavLink>
         <NavLink to="/goty" className="nav-link">
           역대 GOTY
         </NavLink>
+        {user && (
+          <NavLink to="/library" className="nav-link">
+            내 서재
+          </NavLink>
+        )}
       </nav>
       {/* 로그인 상태를 확인하는 동안에는 버튼이 깜빡이지 않도록 비워둔다 */}
       {!loading && (

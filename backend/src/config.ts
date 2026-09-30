@@ -3,6 +3,13 @@ import { fileURLToPath } from 'node:url';
 // PORT 대신 API_PORT를 쓰는 이유: 환경에 PORT가 전역으로 잡혀 있으면 프론트엔드 개발 서버와 포트가 겹친다.
 export const API_PORT = Number(process.env.API_PORT) || 4000;
 export const RAWG_API_KEY = process.env.RAWG_API_KEY?.trim() ?? '';
+/** Steam Web API 키. 보유 게임·업적 조회에만 쓰이고, Steam 로그인(OpenID) 자체에는 필요 없다 */
+export const STEAM_API_KEY = process.env.STEAM_API_KEY?.trim() ?? '';
+/**
+ * 사용자가 접속하는 서비스 주소(예: https://app.example.com). Steam 로그인에서 돌아올 주소를 만드는 데 쓴다.
+ * 비워두면 요청의 Host를 따른다. 개발 중에는 Vite 프록시가 Host를 바꿀 수 있어 http://localhost:5173 으로 지정한다.
+ */
+export const PUBLIC_URL = (process.env.PUBLIC_URL?.trim() ?? '').replace(/\/$/, '');
 /** SQLite DB 파일 경로. 기본값은 backend/data/app.db */
 export const DB_PATH = process.env.DB_PATH || fileURLToPath(new URL('../data/app.db', import.meta.url));
 export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -25,5 +32,8 @@ export const ALLOWED_ORIGINS = [
 export const RAWG_MAX_CALLS_PER_MINUTE = Number(process.env.RAWG_MAX_CALLS_PER_MINUTE) || 120;
 /** 서버 전체가 Apple iTunes API로 보낼 수 있는 분당 요청 수. Apple이 IP당 분당 20회 안팎을 넘으면 거절하므로 그보다 낮게 둔다 */
 export const ITUNES_MAX_CALLS_PER_MINUTE = Number(process.env.ITUNES_MAX_CALLS_PER_MINUTE) || 15;
+/** 인기 게임 수집 시 외부 API 호출 사이 간격(ms). SteamSpy는 초당 1회, Steam 스토어는 5분에 약 200회 제한이 있어 기본값을 그에 맞춘다 */
+export const POPULAR_STEAMSPY_GAP_MS = process.env.POPULAR_GAP_MS === '0' ? 0 : 1_100;
+export const POPULAR_STORE_GAP_MS = process.env.POPULAR_GAP_MS === '0' ? 0 : 1_600;
 /** 요청 로그 사용 여부. 기본은 켜짐이며 LOG_REQUESTS=0으로 끈다 */
 export const LOG_REQUESTS = process.env.LOG_REQUESTS !== '0';

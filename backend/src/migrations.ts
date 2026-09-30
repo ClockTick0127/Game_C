@@ -61,6 +61,42 @@ export const migrations: Migration[] = [
       CREATE UNIQUE INDEX idx_users_calendar_token ON users(calendar_token);
     `,
   },
+  {
+    version: 4,
+    description: 'Steam 계정 연동 (OpenID 로그인)',
+    // SteamID64(17자리)는 JS 숫자로 다루면 정밀도를 잃을 수 있어 문자열로 저장한다. 한 Steam 계정은 한 사용자에게만 연결된다.
+    sql: `
+      ALTER TABLE users ADD COLUMN steam_id TEXT;
+      CREATE UNIQUE INDEX idx_users_steam_id ON users(steam_id);
+    `,
+  },
+  {
+    version: 5,
+    description: '인기 게임 (SteamSpy 보유자 수 추정치 + Steam 스토어 출시 정보)',
+    // SteamSpy는 보유자 수를 구간(예: 1,000,000 ~ 2,000,000)으로만 준다. 출시 연도·플랫폼은 SteamSpy에 없어서
+    // Steam 스토어에서 게임마다 따로 받아 채우며, release_checked=1이면 이미 조회를 마친 것이다(없는 앱 포함).
+    sql: `
+      CREATE TABLE popular_games (
+        appid           INTEGER PRIMARY KEY,
+        name            TEXT    NOT NULL,
+        developer       TEXT    NOT NULL DEFAULT '',
+        publisher       TEXT    NOT NULL DEFAULT '',
+        owners_min      INTEGER NOT NULL,
+        owners_max      INTEGER NOT NULL,
+        ccu             INTEGER NOT NULL DEFAULT 0,
+        price_cents     INTEGER,
+        discount        INTEGER NOT NULL DEFAULT 0,
+        genres          TEXT    NOT NULL DEFAULT '[]',
+        release_year    INTEGER,
+        windows         INTEGER,
+        mac             INTEGER,
+        linux           INTEGER,
+        release_checked INTEGER NOT NULL DEFAULT 0,
+        crawled_at      INTEGER NOT NULL
+      );
+      CREATE INDEX idx_popular_owners ON popular_games(owners_min DESC, ccu DESC);
+    `,
+  },
 ];
 
 function currentVersion(db: DatabaseSync): number {

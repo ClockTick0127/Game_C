@@ -1,7 +1,6 @@
-import type { GameDetails, IosApp, Prices, RelatedGames, StoreInfo, StoreLink } from '../types.ts';
+import type { GameDetails, IosApp, RelatedGames, StoreInfo, StoreLink } from '../types.ts';
 import { createPromiseCache } from '../utils/cache.ts';
 import { HttpError } from '../utils/http.ts';
-import { fetchPrices } from './cheapshark.ts';
 import { fetchIosApp, fetchIosAppById, iosAppId, type IosLookup } from './itunes.ts';
 import { fetchGameInfo, fetchRelatedGames, fetchStoreLinks, RawgApiError, type RawgGameInfo } from './rawg.ts';
 import { IS_SAMPLE_MODE } from './releases.ts';
@@ -130,7 +129,6 @@ async function loadStoreInfo(gameId: number): Promise<Loaded> {
         steam: null,
         metacritic: null,
         details: mergeDetails(rawg, null, ios),
-        prices: null,
         related,
         ios: iosApp,
       },
@@ -138,22 +136,17 @@ async function loadStoreInfo(gameId: number): Promise<Loaded> {
     };
   }
 
-  const [steam, steamStore, pricesResult] = await Promise.all([
-    fetchSteamReviews(appId),
-    fetchSteamAppDetails(appId),
-    attempt<Prices | null>(`CheapShark 가격 (app ${appId})`, () => fetchPrices(appId)),
-  ]);
+  const [steam, steamStore] = await Promise.all([fetchSteamReviews(appId), fetchSteamAppDetails(appId)]);
   return {
     info: {
       stores,
       steam,
       metacritic: steamStore?.metacritic ?? null,
       details: mergeDetails(rawg, steamStore, ios),
-      prices: pricesResult.value,
       related,
       ios: iosApp,
     },
-    complete: rawgResult.ok && relatedResult.ok && iosResult.ok && pricesResult.ok,
+    complete: rawgResult.ok && relatedResult.ok && iosResult.ok,
   };
 }
 
@@ -205,8 +198,7 @@ const NOT_FOUND = '게임을 찾을 수 없습니다.';
 
 export async function getStoreInfo(gameId: number): Promise<StoreInfo> {
   // 샘플 게임은 RAWG에 없는 가상의 게임이다
-  if (IS_SAMPLE_MODE)
-    return { stores: [], steam: null, metacritic: null, details: null, prices: null, related: null, ios: null };
+  if (IS_SAMPLE_MODE) return { stores: [], steam: null, metacritic: null, details: null, related: null, ios: null };
   if (isKnownMissing(gameId)) throw new HttpError(404, NOT_FOUND);
 
   try {

@@ -11,6 +11,7 @@ import { authRouter } from './routes/auth.ts';
 import { calendarRouter } from './routes/calendar.ts';
 import { gamesRouter } from './routes/games.ts';
 import { meRouter } from './routes/me.ts';
+import { popularRouter } from './routes/popular.ts';
 import { IS_SAMPLE_MODE } from './services/releases.ts';
 import { HttpError } from './utils/http.ts';
 
@@ -45,6 +46,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/games', gamesRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/me', meRouter);
+app.use('/api/popular', popularRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api', (_req, res) => {
   res.status(404).json({ error: '존재하지 않는 API입니다.' });

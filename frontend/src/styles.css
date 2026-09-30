@@ -1128,60 +1128,10 @@ input:focus {
   font-size: 13px;
 }
 
-/* 스토어별 가격 비교 */
-.price-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0 0 8px;
-  padding: 0;
-  list-style: none;
-}
-
-.price-list a {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.price-list a:hover {
-  border-color: var(--accent);
-}
-
-.price-store {
-  flex: 1;
-  font-weight: 600;
-}
-
-.price-off {
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--accent-soft);
-  color: var(--success);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.price-value.best {
-  color: var(--success);
-  font-weight: 700;
-}
-
 .price-note {
   margin: 0 0 4px;
   color: var(--text-dim);
   font-size: 12px;
-}
-
-.price-note strong {
-  color: var(--text);
 }
 
 /* iOS App Store */
@@ -2229,4 +2179,468 @@ a.metascore:hover {
   color: inherit;
   font-size: 18px;
   line-height: 1;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  content: '';
+}
+
+/* <a>로 쓰이는 버튼: 밑줄을 없애고 가운데 정렬 */
+.steam-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.steam-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.steam-profile img {
+  border-radius: 6px;
+}
+
+.steam-profile > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.steam-games {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.steam-game {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-2);
+  text-align: left;
+}
+
+.steam-game:hover,
+.steam-game[aria-expanded='true'] {
+  background: var(--accent-soft);
+}
+
+.steam-game img {
+  flex: none;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.steam-achievements {
+  margin: 6px 0 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.steam-achievements p {
+  margin: 0 0 8px;
+}
+
+.steam-achievements ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.steam-achievements li {
+  display: flex;
+  gap: 10px;
+}
+
+.steam-achievements li.locked {
+  opacity: 0.6;
+}
+
+.steam-achievements small {
+  display: block;
+  color: var(--text-dim);
+}
+
+/* 인기 있는 게임 */
+.popular-intro {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.popular-count {
+  margin: 0 0 8px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.popular-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.popular-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.popular-no {
+  flex: none;
+  width: 28px;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.popular-item img {
+  flex: none;
+  border-radius: 6px;
+  background: var(--skeleton);
+  object-fit: cover;
+}
+
+.popular-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.popular-name {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popular-name:hover {
+  color: var(--accent);
+}
+
+.popular-sub {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popular-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.popular-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.popular-stats {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 190px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.popular-stats div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.popular-stats dt {
+  color: var(--text-dim);
+}
+
+.popular-stats dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.popular-off {
+  color: var(--success);
+  font-size: 12px;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 20px 0;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .popular-item {
+    flex-wrap: wrap;
+  }
+
+  .popular-stats {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+}
+
+.popular-note {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.popular .cal-filters {
+  margin-top: 14px;
+}
+
+/* 내 서재: 책장과 PC 게임 상자 */
+.library-intro {
+  margin: 0 0 14px;
+  color: var(--text);
+  font-size: 16px;
+}
+
+.shelf {
+  /* 상자 크기가 정해져 있어 한 줄의 높이도 정해진다. 선반은 그 높이마다 배경으로 깔아서 마지막 줄도 끝까지 이어진다 */
+  --case-w: 132px;
+  --case-h: calc(var(--case-w) * 1.4);
+  --row: calc(var(--case-h) + 42px);
+  display: grid;
+  grid-auto-rows: var(--row);
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  margin: 0 0 16px;
+  padding: 8px 10px;
+  border: 1px solid #3a2a1d;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+        180deg,
+        transparent calc(100% - 16px),
+        #c08a55 calc(100% - 16px),
+        #a06a3c calc(100% - 15px),
+        #6b4423 calc(100% - 6px),
+        #4d3019 100%
+      )
+      0 8px / 100% var(--row) repeat-y,
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, #17110c, #211710);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.55);
+  list-style: none;
+}
+
+.shelf li {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 16px;
+}
+
+.case {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: var(--case-w, 132px);
+  aspect-ratio: 3 / 4.2;
+  padding: 0;
+  border: 0;
+  background: none;
+  filter: drop-shadow(0 8px 6px rgba(0, 0, 0, 0.55));
+  cursor: pointer;
+  transform-origin: bottom center;
+  transition: transform 0.18s ease;
+}
+
+.case:hover,
+.case:focus-visible {
+  transform: translateY(-10px) rotate(-1.5deg) scale(1.04);
+}
+
+.case:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* 상자 옆면의 검은 플라스틱 띠 */
+.case-spine {
+  flex: none;
+  width: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px 0 0 4px;
+  background: linear-gradient(90deg, #08080b, #26262e 55%, #121217);
+}
+
+.case-cover {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 0 4px 4px 0;
+  background: #111;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.case-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.case-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  background: linear-gradient(160deg, #2b2350, #15121f);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  word-break: keep-all;
+}
+
+/* 비닐 랩에 빛이 비치는 느낌 */
+.case-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0) 38%,
+    rgba(255, 255, 255, 0) 70%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  pointer-events: none;
+}
+
+.case-caption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 26px 8px 8px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.88));
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.3;
+  opacity: 0;
+  text-align: left;
+  transition: opacity 0.18s ease;
+}
+
+.case-caption span {
+  color: #cfd3df;
+}
+
+.case:hover .case-caption,
+.case:focus-visible .case-caption {
+  opacity: 1;
+}
+
+.library-modal {
+  width: min(560px, 94vw);
+  padding: 22px;
+}
+
+.library-modal-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.library-modal-head h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.library-modal-head p {
+  margin: 0 0 6px;
+}
+
+.case-static {
+  flex: none;
+  width: 120px;
+  cursor: default;
+}
+
+.case-static:hover {
+  transform: none;
+}
+
+@media (max-width: 520px) {
+  .shelf {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+
+  .shelf {
+    --case-w: 108px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case,
+  .case-caption {
+    transition: none;
+  }
+
+  .case:hover,
+  .case:focus-visible {
+    transform: none;
+  }
 }

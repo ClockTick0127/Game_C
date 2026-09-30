@@ -76,7 +76,6 @@ describe('그 밖의 게임 API — 샘플 모드', () => {
       steam: null,
       metacritic: null,
       details: null,
-      prices: null,
       related: null,
       ios: null,
     });

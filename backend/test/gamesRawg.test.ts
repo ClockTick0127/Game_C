@@ -6,7 +6,6 @@ import { startTestServer } from './helpers.ts';
 const API_KEY = 'test-secret-key-123';
 const RAWG = 'api.rawg.io';
 const STEAM = 'store.steampowered.com';
-const CHEAPSHARK = 'www.cheapshark.com';
 
 let t: Awaited<ReturnType<typeof startTestServer>>;
 let fake: ReturnType<typeof installFakeFetch>;
@@ -325,7 +324,6 @@ describe('GET /api/games/:id/store-info', () => {
         website: null,
         steam: null,
       },
-      prices: null,
       related: null, // DLC·시리즈 요청은 이 테스트에서 응답하지 않았다
       ios: null,
     });
@@ -535,64 +533,6 @@ describe('GET /api/games/:id/store-info', () => {
     assert.equal(related.series.length, 6);
   });
 
-  it('CheapShark로 스토어별 가격을 싼 순으로 보여주고 비활성 스토어는 뺀다', async () => {
-    const userAgents: string[] = [];
-    const f = withExternal((url, init) => {
-      if (url.pathname === '/api/games/614/stores')
-        return json({ results: [{ store_id: 1, url: 'https://store.steampowered.com/app/7/' }] });
-      if (url.pathname === '/api/games/614') return json({ name: 'Priced', platforms: [] });
-      if (/^\/api\/games\/614\/(additions|game-series)$/.test(url.pathname)) return json({ results: [] });
-      if (url.pathname === '/appreviews/7') return json(steamReviews);
-      if (url.pathname === '/api/appdetails') return json({ '7': { success: true, data: {} } });
-      if (url.host === 'api.steampowered.com') return json({ response: { player_count: 1234, result: 1 } });
-      if (url.host === CHEAPSHARK) {
-        userAgents.push(new Headers(init?.headers).get('user-agent') ?? '');
-        if (url.pathname === '/api/1.0/stores')
-          return json([
-            { storeID: '1', storeName: 'Steam', isActive: 1 },
-            { storeID: '2', storeName: 'GamersGate', isActive: 0 },
-            { storeID: '11', storeName: 'Humble Store', isActive: 1 },
-          ]);
-        if (url.searchParams.has('steamAppID')) return json([{ gameID: '55', steamAppID: '7' }]);
-        if (url.searchParams.get('id') === '55') {
-          return json({
-            cheapestPriceEver: { price: '5.49', date: 1557423616 },
-            deals: [
-              { storeID: '1', dealID: 'a%2Bb%3D', price: '24.99', retailPrice: '24.99', savings: '0.000000' },
-              { storeID: '2', dealID: 'inactive', price: '1.00', retailPrice: '24.99', savings: '96' },
-              { storeID: '11', dealID: 'c', price: '19.99', retailPrice: '24.99', savings: '20.008003' },
-            ],
-          });
-        }
-      }
-      return undefined;
-    });
-    const res = await get('/api/games/614/store-info');
-
-    assert.deepEqual(res.json.prices, {
-      deals: [
-        {
-          store: 'Humble Store',
-          price: 19.99,
-          retailPrice: 24.99,
-          savingsPercent: 20,
-          url: 'https://www.cheapshark.com/redirect?dealID=c',
-        },
-        {
-          store: 'Steam',
-          price: 24.99,
-          retailPrice: 24.99,
-          savingsPercent: 0,
-          url: 'https://www.cheapshark.com/redirect?dealID=a%2Bb%3D', // 풀었다가 다시 인코딩해도 같은 값
-        },
-      ],
-      cheapestEver: { price: 5.49, date: '2019-05-09' },
-    });
-    assert.ok(f.callsTo(CHEAPSHARK).length >= 3);
-    // CheapShark는 식별 가능한 User-Agent가 없는 요청을 거절한다
-    assert.ok(userAgents.every((ua) => ua.startsWith('GameCalendar/')));
-  });
-
   it('현재 접속자 수는 6시간 캐시와 별개로 짧게 캐시한다', async () => {
     let players = 100;
     const f = withExternal((url) => {
@@ -602,7 +542,6 @@ describe('GET /api/games/:id/store-info', () => {
       if (/^\/api\/games\/615\/(additions|game-series)$/.test(url.pathname)) return json({ results: [] });
       if (url.pathname === '/appreviews/8') return json(steamReviews);
       if (url.pathname === '/api/appdetails') return json({ '8': { success: true, data: {} } });
-      if (url.host === CHEAPSHARK) return json([]);
       if (url.host === 'api.steampowered.com') return json({ response: { player_count: players, result: 1 } });
       return undefined;
     });
@@ -613,29 +552,20 @@ describe('GET /api/games/:id/store-info', () => {
     assert.equal(f.callsTo('api.steampowered.com').length, 1);
   });
 
-  it('가격을 못 가져와도 응답은 정상이고, 그 결과는 캐시하지 않는다', async () => {
-    let cheapsharkDown = true;
-    const f = withExternal((url) => {
+  it('접속자 수를 못 가져와도 응답은 정상이다', async () => {
+    withExternal((url) => {
       if (url.pathname === '/api/games/616/stores')
         return json({ results: [{ store_id: 1, url: 'https://store.steampowered.com/app/9/' }] });
-      if (url.pathname === '/api/games/616') return json({ name: 'Flaky Price', platforms: [] });
+      if (url.pathname === '/api/games/616') return json({ name: 'No Players', platforms: [] });
       if (/^\/api\/games\/616\/(additions|game-series)$/.test(url.pathname)) return json({ results: [] });
       if (url.pathname === '/appreviews/9') return json(steamReviews);
       if (url.pathname === '/api/appdetails') return json({ '9': { success: true, data: {} } });
       if (url.host === 'api.steampowered.com') return json({ response: { result: 42 } });
-      if (url.host === CHEAPSHARK) return cheapsharkDown ? new Response('down', { status: 503 }) : json([]);
       return undefined;
     });
-    const first = await get('/api/games/616/store-info');
-    assert.equal(first.status, 200);
-    assert.equal(first.json.prices, null);
-    assert.equal(first.json.steam.currentPlayers, null); // result가 1이 아니면 접속자 수 없음
-
-    const gameLookups = () => f.callsTo(CHEAPSHARK, '/api/1.0/games').length;
-    const before = gameLookups();
-    cheapsharkDown = false;
-    await get('/api/games/616/store-info');
-    assert.ok(gameLookups() > before); // 실패한 결과가 캐시에 남지 않아 CheapShark를 다시 불렀다
+    const res = await get('/api/games/616/store-info');
+    assert.equal(res.status, 200);
+    assert.equal(res.json.steam.currentPlayers, null); // result가 1이 아니면 접속자 수 없음
   });
 
   describe('iOS App Store (iTunes)', () => {

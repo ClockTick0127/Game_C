@@ -7,8 +7,10 @@ import { FavoritesProvider } from './contexts/FavoritesContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { CalendarPage } from './pages/CalendarPage';
 import { GotyPage } from './pages/GotyPage';
+import { LibraryPage } from './pages/LibraryPage';
 import { LoginPage } from './pages/LoginPage';
 import { MyPage } from './pages/MyPage';
+import { PopularPage } from './pages/PopularPage';
 import { SignupPage } from './pages/SignupPage';
 
 export default function App() {
@@ -25,9 +27,18 @@ export default function App() {
                 <ErrorBoundary>
                   <Routes>
                     <Route path="/" element={<CalendarPage />} />
+                    <Route path="/popular" element={<PopularPage />} />
                     <Route path="/goty" element={<GotyPage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/signup" element={<SignupPage />} />
+                    <Route
+                      path="/library"
+                      element={
+                        <RequireAuth>
+                          <LibraryPage />
+                        </RequireAuth>
+                      }
+                    />
                     <Route
                       path="/mypage"
                       element={

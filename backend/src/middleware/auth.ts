@@ -6,7 +6,7 @@ import { HttpError } from '../utils/http.ts';
 
 const SESSION_COOKIE = 'sid';
 
-function readCookie(req: Request, name: string): string | undefined {
+export function readCookie(req: Request, name: string): string | undefined {
   for (const part of req.headers.cookie?.split(';') ?? []) {
     const [key, ...rest] = part.trim().split('=');
     if (key === name) return decodeURIComponent(rest.join('='));

@@ -74,25 +74,6 @@ export interface GameDetails {
   steam: SteamStore | null;
 }
 
-/** 스토어별 가격 한 건 (CheapShark, USD) */
-export interface PriceDeal {
-  store: string;
-  price: number;
-  retailPrice: number;
-  /** 정가 대비 할인율(%) */
-  savingsPercent: number;
-  /** 해당 스토어의 구매 페이지로 이동하는 링크 */
-  url: string;
-}
-
-/** PC 게임 스토어별 가격 비교. 가격은 모두 USD다. */
-export interface Prices {
-  /** 싼 순서. 최대 몇 개만 담는다 */
-  deals: PriceDeal[];
-  /** 역대 최저가. 날짜는 YYYY-MM-DD */
-  cheapestEver: { price: number; date: string | null } | null;
-}
-
 /** DLC·시리즈 목록에 나오는 게임 한 건 */
 export interface RelatedGame {
   id: number;
@@ -137,8 +118,6 @@ export interface StoreInfo {
   metacritic: Metacritic | null;
   /** 소개와 제작 정보. 가져오지 못했으면 null */
   details: GameDetails | null;
-  /** PC 스토어별 가격 비교. Steam에서 팔지 않거나 가져오지 못했으면 null */
-  prices: Prices | null;
   /** DLC와 같은 시리즈 게임. 가져오지 못했으면 null */
   related: RelatedGames | null;
   /** iOS 게임이면 App Store 정보. 없거나 찾지 못했으면 null */

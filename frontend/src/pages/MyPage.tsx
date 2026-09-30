@@ -6,6 +6,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DDay } from '../components/DDay';
 import { GameDetailModal } from '../components/GameDetail';
 import { GameThumb } from '../components/GameThumb';
+import { SteamSection } from '../components/SteamSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
 import { useToast } from '../contexts/ToastContext';
@@ -23,6 +24,7 @@ export function MyPage() {
       <h1 className="page-title">마이페이지</h1>
       <ProfileSection user={user} />
       <FavoritesSection />
+      <SteamSection user={user} />
       <CalendarSubscribeSection />
       <PasswordSection />
       <SessionSection />

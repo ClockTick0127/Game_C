@@ -1,4 +1,4 @@
-import type { Game, User } from '../types';
+import type { Game, SteamAchievements, SteamOwnedGames, SteamStatus, User } from '../types';
 import { request } from './client';
 
 export function updateNickname(nickname: string): Promise<{ user: User }> {
@@ -31,4 +31,21 @@ export function fetchCalendarToken(): Promise<{ token: string }> {
 
 export function resetCalendarToken(): Promise<{ token: string }> {
   return request('/api/me/calendar-token', { method: 'POST' });
+}
+
+export function fetchSteamStatus(): Promise<SteamStatus> {
+  return request('/api/me/steam');
+}
+
+/** Steam 연동 해제. 비밀번호 로그인은 그대로 쓸 수 있다 */
+export function unlinkSteam(): Promise<{ user: User }> {
+  return request('/api/me/steam', { method: 'DELETE' });
+}
+
+export function fetchSteamGames(): Promise<SteamOwnedGames> {
+  return request('/api/me/steam/games');
+}
+
+export function fetchSteamAchievements(appId: number): Promise<SteamAchievements> {
+  return request(`/api/me/steam/games/${appId}/achievements`);
 }

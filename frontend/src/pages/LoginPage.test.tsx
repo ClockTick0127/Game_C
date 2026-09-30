@@ -93,3 +93,18 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('link', { name: '회원가입' })).toHaveAttribute('href', '/signup?redirect=%2Fmypage');
   });
 });
+
+describe('LoginPage — Steam 로그인', () => {
+  it('Steam 로그인 링크는 redirect를 유지한다', async () => {
+    renderApp(<LoginPage />, { route: '/login?redirect=%2Fmypage', path: '/login' });
+    expect(await screen.findByRole('link', { name: 'Steam으로 로그인' })).toHaveAttribute(
+      'href',
+      '/api/auth/steam?mode=login&redirect=%2Fmypage',
+    );
+  });
+
+  it('연동된 계정이 없다는 결과 코드를 안내한다', async () => {
+    renderApp(<LoginPage />, { route: '/login?steam=unlinked', path: '/login' });
+    expect(await screen.findByText(/Steam을 연동해 주세요/)).toBeInTheDocument();
+  });
+});

@@ -23,8 +23,14 @@ describe('DB 마이그레이션', () => {
     const db = new DatabaseSync(':memory:');
     assert.equal(runMigrations(db), migrations.length);
     assert.equal(version(db), migrations.length);
-    assert.deepEqual(tables(db), ['favorites', 'sessions', 'users']);
-    assert.deepEqual(indexes(db), ['idx_sessions_expires_at', 'idx_sessions_user_id', 'idx_users_calendar_token']);
+    assert.deepEqual(tables(db), ['favorites', 'popular_games', 'sessions', 'users']);
+    assert.deepEqual(indexes(db), [
+      'idx_popular_owners',
+      'idx_sessions_expires_at',
+      'idx_sessions_user_id',
+      'idx_users_calendar_token',
+      'idx_users_steam_id',
+    ]);
   });
 
   it('다시 실행해도 아무것도 적용하지 않는다', () => {
@@ -67,7 +73,7 @@ describe('DB 마이그레이션', () => {
       nickname: string;
     };
     assert.equal(user.nickname, '기존회원');
-    assert.equal(indexes(db).length, 3);
+    assert.equal(indexes(db).length, 5);
   });
 
   it('중간 단계가 실패하면 그 단계만 되돌리고 이전 버전에 머문다', () => {

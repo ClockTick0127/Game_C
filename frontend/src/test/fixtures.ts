@@ -21,6 +21,7 @@ export const testUser: User = {
   email: 'tester@example.com',
   nickname: '테스터',
   createdAt: '2026-01-01T00:00:00.000Z',
+  steamId: null,
 };
 
 /** 밖에서 직접 성공·실패시킬 수 있는 Promise (요청 순서와 타이밍을 제어하는 테스트용) */

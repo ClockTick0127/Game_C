@@ -1,11 +1,12 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { clearSessionCookie, currentUser, requireAuth } from '../middleware/auth.ts';
 import { getOrCreateCalendarToken, resetCalendarToken } from '../services/calendarFeed.ts';
-import { sensitiveLimiter } from '../middleware/rateLimit.ts';
+import { sensitiveLimiter, steamDataLimiter } from '../middleware/rateLimit.ts';
 import { addFavorite, listFavorites, removeFavorite } from '../services/favorites.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
 import { deleteOtherSessions } from '../services/sessions.ts';
-import { deleteUser, findUserRowById, updateNickname, updatePasswordHash } from '../services/users.ts';
+import { fetchAchievements, fetchOwnedGames, fetchProfile, steamApiConfigured } from '../services/steamProfile.ts';
+import { deleteUser, findUserRowById, setSteamId, updateNickname, updatePasswordHash } from '../services/users.ts';
 import { HttpError } from '../utils/http.ts';
 import { parseGame, requireText, validateNickname, validatePassword } from '../utils/validate.ts';
 
@@ -83,4 +84,41 @@ meRouter.get('/calendar-token', (req, res) => {
 /** POST /api/me/calendar-token — 토큰을 새로 만든다. 유출된 옛 구독 주소는 더 이상 동작하지 않는다. */
 meRouter.post('/calendar-token', (req, res) => {
   res.json({ token: resetCalendarToken(currentUser(req).id) });
+});
+
+// --- Steam 연동 ---
+
+/** 연동된 SteamID를 돌려준다. 연동하지 않았으면 404 */
+function linkedSteamId(req: Request): string {
+  const steamId = currentUser(req).steamId;
+  if (!steamId) throw new HttpError(404, '연동된 Steam 계정이 없습니다.');
+  return steamId;
+}
+
+/** GET /api/me/steam — 연동 상태. configured가 false면 서버에 Steam API 키가 없어 게임·업적 조회는 못 한다 */
+meRouter.get('/steam', async (req, res) => {
+  const { steamId } = currentUser(req);
+  res.json({
+    configured: steamApiConfigured(),
+    linked: steamId !== null,
+    steamId,
+    profile: steamId && steamApiConfigured() ? await fetchProfile(steamId) : null,
+  });
+});
+
+/** DELETE /api/me/steam — 연동 해제. 이 계정은 비밀번호로 계속 로그인할 수 있다 */
+meRouter.delete('/steam', (req, res) => {
+  res.json({ user: setSteamId(currentUser(req).id, null) });
+});
+
+/** GET /api/me/steam/games — 보유 게임 (플레이 시간이 긴 순) */
+meRouter.get('/steam/games', steamDataLimiter, async (req, res) => {
+  res.json(await fetchOwnedGames(linkedSteamId(req)));
+});
+
+/** GET /api/me/steam/games/:appId/achievements — 게임 하나의 업적 달성 현황 */
+meRouter.get('/steam/games/:appId/achievements', steamDataLimiter, async (req, res) => {
+  const appId = Number(req.params.appId);
+  if (!Number.isSafeInteger(appId) || appId <= 0) throw new HttpError(400, '게임 ID가 올바르지 않습니다.');
+  res.json(await fetchAchievements(linkedSteamId(req), appId));
 });

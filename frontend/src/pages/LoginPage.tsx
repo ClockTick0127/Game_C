@@ -4,6 +4,7 @@ import { errorMessage } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { safeRedirect, withRedirect } from '../utils/redirect';
+import { steamAuthUrl, steamResult } from '../utils/steam';
 
 export function LoginPage() {
   useDocumentTitle('로그인');
@@ -14,7 +15,7 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(steamResult(searchParams.get('steam'))?.text ?? null);
   const [submitting, setSubmitting] = useState(false);
 
   if (user && !submitting) return <Navigate to={redirect} replace />;
@@ -55,6 +56,13 @@ export function LoginPage() {
           {submitting ? '로그인 중…' : '로그인'}
         </button>
       </form>
+      <div className="auth-divider">
+        <span>또는</span>
+      </div>
+      {/* Steam 페이지로 이동해야 하므로 라우터 링크가 아니라 일반 링크를 쓴다 */}
+      <a className="btn steam-btn" href={steamAuthUrl('login', redirect)}>
+        Steam으로 로그인
+      </a>
       <p className="auth-switch">
         아직 계정이 없나요? <Link to={withRedirect('/signup', redirect)}>회원가입</Link>
       </p>

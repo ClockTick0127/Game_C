@@ -19,6 +19,44 @@ export interface User {
   nickname: string;
   /** 가입 시각 (ISO 8601) */
   createdAt: string;
+  /** 연동한 Steam 계정(SteamID64). 연동하지 않았으면 null */
+  steamId: string | null;
+}
+
+/** 마이페이지의 Steam 연동 상태 */
+export interface SteamStatus {
+  /** false면 서버에 Steam API 키가 없어 보유 게임·업적은 조회할 수 없다 */
+  configured: boolean;
+  profile: { name: string; avatar: string | null; url: string | null } | null;
+}
+
+export interface SteamOwnedGame {
+  appId: number;
+  name: string;
+  playtimeMinutes: number;
+  lastPlayedAt: string | null;
+  image: string;
+}
+
+export interface SteamOwnedGames {
+  /** true면 프로필의 게임 세부 정보가 비공개라 목록을 볼 수 없다 */
+  private: boolean;
+  games: SteamOwnedGame[];
+}
+
+export interface SteamAchievement {
+  id: string;
+  name: string;
+  description: string;
+  achieved: boolean;
+  unlockedAt: string | null;
+}
+
+export interface SteamAchievements {
+  /** false면 업적이 없는 게임 */
+  supported: boolean;
+  private: boolean;
+  achievements: SteamAchievement[];
 }
 
 export interface StoreLink {
@@ -82,25 +120,6 @@ export interface GameDetails {
   steam: SteamStore | null;
 }
 
-/** 스토어별 가격 한 건 (CheapShark, USD) */
-export interface PriceDeal {
-  store: string;
-  price: number;
-  retailPrice: number;
-  /** 정가 대비 할인율(%) */
-  savingsPercent: number;
-  /** 해당 스토어의 구매 페이지로 이동하는 링크 */
-  url: string;
-}
-
-/** PC 게임 스토어별 가격 비교. 가격은 모두 USD다. */
-export interface Prices {
-  /** 싼 순서. 최대 몇 개만 담는다 */
-  deals: PriceDeal[];
-  /** 역대 최저가. 날짜는 YYYY-MM-DD */
-  cheapestEver: { price: number; date: string | null } | null;
-}
-
 /** DLC·시리즈 목록에 나오는 게임 한 건 */
 export interface RelatedGame {
   id: number;
@@ -145,8 +164,6 @@ export interface StoreInfo {
   metacritic: Metacritic | null;
   /** 소개와 제작 정보. 가져오지 못했으면 null */
   details: GameDetails | null;
-  /** PC 스토어별 가격 비교. Steam에서 팔지 않거나 가져오지 못했으면 null */
-  prices: Prices | null;
   /** DLC와 같은 시리즈 게임. 가져오지 못했으면 null */
   related: RelatedGames | null;
   /** iOS 게임이면 App Store 정보. 없거나 찾지 못했으면 null */
@@ -159,4 +176,57 @@ export interface ReleasesResponse {
   sample: boolean;
   /** true면 일부 페이지를 가져오지 못해 목록이 완전하지 않다 */
   partial?: boolean;
+}
+
+export type PopularPlatform = 'windows' | 'mac' | 'linux';
+
+/** 인기 있는 게임 한 건 (SteamSpy 보유자 수 추정치 기반). backend/src/services/popular.ts와 동일하게 유지할 것. */
+export interface PopularGame {
+  appId: number;
+  name: string;
+  developer: string;
+  publisher: string;
+  /** 보유자 수 추정 구간. SteamSpy는 정확한 수가 아니라 구간만 준다 */
+  ownersMin: number;
+  ownersMax: number;
+  /** 어제 기준 최대 동시 접속자 수 */
+  ccu: number;
+  /** 미국 스토어 기준 현재 가격(USD). 무료면 0 */
+  priceUsd: number | null;
+  discount: number;
+  /** SteamSpy 장르 이름 (영어) */
+  genres: string[];
+  /** 아직 Steam 스토어에서 받아오지 못했으면 null */
+  releaseYear: number | null;
+  platforms: Record<PopularPlatform, boolean> | null;
+  image: string;
+}
+
+export interface PopularFacet<T> {
+  value: T;
+  count: number;
+}
+
+/** GET /api/popular 응답 */
+export interface PopularResponse {
+  status: {
+    /** false면 서버가 처음 데이터를 모으는 중이다 */
+    ready: boolean;
+    updatedAt: string | null;
+    total: number;
+    /** 출시 연도·플랫폼 정보를 채운 게임 수 (total보다 작으면 아직 채우는 중) */
+    releaseChecked: number;
+  };
+  /** 필터를 적용한 결과 수 */
+  total: number;
+  page: number;
+  pageSize: number;
+  games: PopularGame[];
+  /** 달러→원 환율. 조회하지 못했으면 null이고 가격은 달러로 보여 준다 */
+  exchange: { krwPerUsd: number; date: string } | null;
+  facets: {
+    genres: PopularFacet<string>[];
+    years: PopularFacet<number>[];
+    platforms: PopularFacet<PopularPlatform>[];
+  };
 }

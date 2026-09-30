@@ -1,7 +1,7 @@
 import { useStoreInfo } from '../hooks/useStoreInfo';
 import type { Metacritic, SteamReviews } from '../types';
 import { GameExtras } from './GameExtras';
-import { IosAppCard, PriceCompare, RelatedGamesList } from './StoreExtras';
+import { IosAppCard, RelatedGamesList } from './StoreExtras';
 
 /** Steam 스토어와 같은 색 구분: 긍정(파랑) · 복합적(노랑) · 부정(빨강) */
 function tone(score: number): 'positive' | 'mixed' | 'negative' {
@@ -117,13 +117,6 @@ export function StoreSection({ gameId, onPc, rawgMetacritic }: Props) {
           </>
         )}
       </div>
-
-      {!loading && info!.prices && (
-        <div className="store-block">
-          <h3>PC 스토어 가격 비교</h3>
-          <PriceCompare prices={info!.prices} />
-        </div>
-      )}
 
       {!loading && info!.ios && (
         <div className="store-block">
