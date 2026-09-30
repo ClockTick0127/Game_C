@@ -2,24 +2,28 @@ import { useEffect, useMemo, useState, type DragEvent, type FormEvent, type Keyb
 import { Link } from 'react-router';
 import { errorMessage } from '../api/client';
 import * as meApi from '../api/me';
+import { GameLogEditor } from '../components/GameLogEditor';
 import { BookSpine, Cover, GameCase, RecentCard } from '../components/LibraryParts';
 import { Modal } from '../components/Modal';
 import { SteamAchievementList } from '../components/SteamSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import type { CustomGame, Game, SteamOwnedGame, SteamOwnedGames } from '../types';
+import type { CustomGame, Game, GameLog, GameLogInput, SteamOwnedGame, SteamOwnedGames } from '../types';
 import {
   customToOwned,
   filterAndSort,
+  filterByStatus,
   formatTotalHours,
+  gameLabel,
   placeAt,
-  playtimeLabel,
   recentGames,
   removeFrom,
   SORT_LABELS,
+  STATUS_FILTER_LABELS,
   toLibraryId,
   toRawgId,
   type LibrarySort,
+  type StatusFilter,
 } from '../utils/library';
 import { formatPlaytime } from '../utils/steam';
 
@@ -39,10 +43,13 @@ export function LibraryPage() {
   const [shelfIds, setShelfIds] = useState<number[]>([]);
   /** 검색해서 직접 추가한 게임. Steam 게임과 함께 서재에 꽂힌다 */
   const [customGames, setCustomGames] = useState<CustomGame[]>([]);
+  /** 게임마다 남긴 플레이 상태·별점·메모 (서재 번호 → 기록) */
+  const [logs, setLogs] = useState<Record<number, GameLog>>({});
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<LibrarySort>('playtime');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [shown, setShown] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState<SteamOwnedGame | null>(null);
   const [peek, setPeek] = useState<{ game: SteamOwnedGame; rect: DOMRect } | null>(null);
@@ -63,17 +70,19 @@ export function LibraryPage() {
   useEffect(() => {
     if (!linked) return;
     const controller = new AbortController();
-    // 진열장 배치를 못 불러와도 서재는 보여 준다 (진열장은 빈 채로)
+    // 진열장 배치나 기록을 못 불러와도 서재는 보여 준다 (진열장은 빈 채로, 기록은 없는 것으로)
     Promise.all([
       meApi.fetchSteamGames(),
       meApi.fetchLibraryOrder().catch(() => ({ order: [] as number[] })),
       meApi.fetchCustomGames().catch(() => ({ games: [] as CustomGame[] })),
+      meApi.fetchGameLogs().catch(() => ({ logs: [] as GameLog[] })),
     ])
-      .then(([games, saved, custom]) => {
+      .then(([games, saved, custom, savedLogs]) => {
         if (controller.signal.aborted) return;
         setData(games);
         setShelfIds(saved.order);
         setCustomGames(custom.games);
+        setLogs(Object.fromEntries(savedLogs.logs.map((l) => [l.gameId, l])));
       })
       .catch((err) => !controller.signal.aborted && setError(errorMessage(err)));
     return () => controller.abort();
@@ -110,13 +119,14 @@ export function LibraryPage() {
   const libraryGames = useMemo(() => {
     if (!data) return [];
     const onShelf = new Set(currentShelf);
-    // 편집 중에는 검색어를 무시하고 전체를 대상으로 한다
-    return filterAndSort(
+    // 편집 중에는 검색어와 상태 필터를 무시하고 전체를 대상으로 한다
+    const sorted = filterAndSort(
       allGames.filter((g) => !onShelf.has(g.appId)),
       editing ? '' : query,
       sort,
     );
-  }, [data, allGames, currentShelf, editing, query, sort]);
+    return editing ? sorted : filterByStatus(sorted, logs, statusFilter);
+  }, [data, allGames, currentShelf, editing, query, sort, logs, statusFilter]);
   const recent = useMemo(() => recentGames(data?.games ?? []), [data]);
   const totalMinutes = useMemo(() => data?.games.reduce((sum, g) => sum + g.playtimeMinutes, 0) ?? 0, [data]);
   const visibleLibrary = editing ? libraryGames : libraryGames.slice(0, shown);
@@ -284,6 +294,21 @@ export function LibraryPage() {
     setSelected(null);
   };
 
+  /** 플레이 상태·별점·메모를 저장한다. 서버에 저장된 뒤에야 화면에 반영된다 */
+  const saveLog = async (gameId: number, input: GameLogInput) => {
+    await meApi.saveGameLog(gameId, input);
+    setLogs((prev) => ({ ...prev, [gameId]: { gameId, ...input } }));
+  };
+
+  const clearLog = async (gameId: number) => {
+    await meApi.deleteGameLog(gameId);
+    setLogs((prev) => {
+      const next = { ...prev };
+      delete next[gameId];
+      return next;
+    });
+  };
+
   const heldOnShelf = held !== null && whereIs(held) === 'shelf';
   const classNames = (...names: (string | false)[]) => names.filter(Boolean).join(' ');
 
@@ -410,6 +435,21 @@ export function LibraryPage() {
                   </option>
                 ))}
               </select>
+              <select
+                className="filter-select"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as StatusFilter);
+                  setShown(PAGE_SIZE);
+                }}
+                aria-label="상태별로 보기"
+              >
+                {(Object.keys(STATUS_FILTER_LABELS) as StatusFilter[]).map((k) => (
+                  <option key={k} value={k}>
+                    {STATUS_FILTER_LABELS[k]}
+                  </option>
+                ))}
+              </select>
               <button type="button" className="btn btn-sm" onClick={startEdit}>
                 배치 바꾸기
               </button>
@@ -457,6 +497,7 @@ export function LibraryPage() {
                 >
                   <GameCase
                     game={game}
+                    log={logs[game.appId]}
                     editing={editing}
                     held={held === game.appId}
                     onPress={() => press(game, 'shelf')}
@@ -489,7 +530,9 @@ export function LibraryPage() {
           </h2>
           {visibleLibrary.length === 0 ? (
             <p className="shelf-empty">
-              {query.trim() && !editing ? '찾는 게임이 서재에 없어요.' : '모든 게임이 진열장에 있어요.'}
+              {(query.trim() || statusFilter !== 'all') && !editing
+                ? '찾는 게임이 서재에 없어요.'
+                : '모든 게임이 진열장에 있어요.'}
             </p>
           ) : (
             <ul className={classNames('stacks', editing && 'editing')} {...(editing ? libraryTarget : {})}>
@@ -501,6 +544,7 @@ export function LibraryPage() {
                 >
                   <BookSpine
                     game={game}
+                    log={logs[game.appId]}
                     editing={editing}
                     held={held === game.appId}
                     onPress={() => press(game, 'library')}
@@ -522,10 +566,13 @@ export function LibraryPage() {
         </>
       )}
 
-      {peek && <SpineTip game={peek.game} rect={peek.rect} />}
+      {peek && <SpineTip game={peek.game} log={logs[peek.game.appId]} rect={peek.rect} />}
       {selected && (
         <GameModal
           game={selected}
+          log={logs[selected.appId]}
+          onSaveLog={(input) => saveLog(selected.appId, input)}
+          onClearLog={() => clearLog(selected.appId)}
           onClose={() => setSelected(null)}
           onRemove={selected.custom ? removeCustom : undefined}
         />
@@ -543,7 +590,7 @@ export function LibraryPage() {
 }
 
 /** 마우스를 올린 책 위에 뜨는 말풍선. 화면 위쪽에 붙어 있어 위에 둘 자리가 없으면 책 아래에 띄운다 */
-function SpineTip({ game, rect }: { game: SteamOwnedGame; rect: DOMRect }) {
+function SpineTip({ game, log, rect }: { game: SteamOwnedGame; log: GameLog | undefined; rect: DOMRect }) {
   const below = rect.top < 90;
   // 좌우로 화면 밖으로 나가지 않게 한다
   const left = Math.min(Math.max(rect.left + rect.width / 2, 110), window.innerWidth - 110);
@@ -555,17 +602,23 @@ function SpineTip({ game, rect }: { game: SteamOwnedGame; rect: DOMRect }) {
       style={{ left, top: below ? rect.bottom + 12 : rect.top - 30, transform: below ? 'translateX(-50%)' : undefined }}
     >
       <strong>{game.name}</strong>
-      <span>{playtimeLabel(game)}</span>
+      <span>{gameLabel(game, log)}</span>
     </div>
   );
 }
 
 function GameModal({
   game,
+  log,
+  onSaveLog,
+  onClearLog,
   onClose,
   onRemove,
 }: {
   game: SteamOwnedGame;
+  log: GameLog | undefined;
+  onSaveLog: (input: GameLogInput) => Promise<void>;
+  onClearLog: () => Promise<void>;
   onClose: () => void;
   /** 직접 추가한 게임일 때만 있다 */
   onRemove?: (game: SteamOwnedGame) => Promise<void>;
@@ -612,6 +665,7 @@ function GameModal({
           )}
         </div>
       </div>
+      <GameLogEditor log={log} onSave={onSaveLog} onClear={onClearLog} />
       {game.custom ? (
         <p className="muted">직접 추가한 게임은 플레이 시간과 업적을 볼 수 없어요.</p>
       ) : (

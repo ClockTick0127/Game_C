@@ -469,6 +469,38 @@ describe('GET /api/games/:id/store-info', () => {
     assert.equal(details.steam, null);
   });
 
+  it('RAWG의 영어 설명은 한국어로 번역해 내려 주고, 번역이 안 되면 영어 그대로 둔다', async () => {
+    let translateUp = true;
+    withExternal((url, init) => {
+      if (url.host === 'translate.googleapis.com') {
+        if (!translateUp) return json({}, 503);
+        // 줄바꿈은 공백으로 펴서 보낸다
+        assert.equal((init?.body as URLSearchParams).get('q'), 'A dark world. Hard combat.');
+        return json([[['어두운 세계. 어려운 전투.', 'A dark world. Hard combat.']]]);
+      }
+      if (url.pathname === '/api/games/612/stores') return json({ results: [] });
+      if (url.pathname === '/api/games/612')
+        return json({
+          name: 'Console Only',
+          platforms: [{ platform: { slug: 'playstation5' } }],
+          description_raw: 'A dark world.\nHard combat.',
+        });
+      return undefined;
+    });
+    assert.equal((await get('/api/games/612/store-info')).json.details.description, '어두운 세계. 어려운 전투.');
+
+    translateUp = false;
+    // 위 결과는 캐시되므로 다른 게임으로 확인한다
+    withExternal((url) => {
+      if (url.host === 'translate.googleapis.com') return json({}, 503);
+      if (url.pathname === '/api/games/613/stores') return json({ results: [] });
+      if (url.pathname === '/api/games/613')
+        return json({ name: 'X', platforms: [], description_raw: 'Only English here.' });
+      return undefined;
+    });
+    assert.equal((await get('/api/games/613/store-info')).json.details.description, 'Only English here.');
+  });
+
   it('무료 게임과 한국어 미지원 게임을 구분한다', async () => {
     withExternal((url) => {
       if (url.pathname === '/api/games/611/stores')

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarFilters } from '../components/CalendarFilters';
 import { CalendarGrid } from '../components/CalendarGrid';
 import { CalendarHeader } from '../components/CalendarHeader';
@@ -13,6 +13,7 @@ import type { Game } from '../types';
 import { buildWeekDays, formatWeekRange } from '../utils/calendar';
 import { readStoredView, storeView, type CalendarView } from '../utils/calendarView';
 import { collectOptions, filterGames, groupByDate, NO_FILTER, type GameFilter } from '../utils/filterGames';
+import { withPreferences } from '../utils/preferences';
 
 /** 그 달의 대표 날짜: 이번 달이면 오늘, 아니면 1일 (보기를 바꿔도 보던 위치가 자연스럽게 이어진다) */
 function anchorForMonth(year: number, month: number): Date {
@@ -30,7 +31,16 @@ export function CalendarPage() {
   const { user } = useAuth();
   const { isFavorite } = useFavorites();
   // 필터는 달을 넘겨도 유지한다 ("RPG만 보면서 다음 달로")
-  const [filter, setFilter] = useState<GameFilter>(NO_FILTER);
+  // 처음에는 마이페이지에서 정해 둔 선호 플랫폼·장르가 기본 필터다
+  const [filter, setFilter] = useState<GameFilter>(() => withPreferences(NO_FILTER, user));
+  // 로그인 정보가 화면보다 늦게 도착하는 경우에도 한 번만 적용한다 (이후에 사용자가 바꾼 필터는 건드리지 않는다)
+  const preferencesApplied = useRef(user !== null);
+  useEffect(() => {
+    if (user && !preferencesApplied.current) {
+      preferencesApplied.current = true;
+      setFilter((current) => withPreferences(current, user));
+    }
+  }, [user]);
 
   const isWeek = view === 'week';
   const weekDays = useMemo(() => buildWeekDays(anchor), [anchor]);

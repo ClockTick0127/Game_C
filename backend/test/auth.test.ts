@@ -107,6 +107,27 @@ describe('마이페이지', () => {
     assert.equal(res.json.user.nickname, '새닉네임');
   });
 
+  it('선호 플랫폼·장르: 로그인 필요, 저장하면 내 정보에 붙고 비우면 null, 잘못된 값은 400', async () => {
+    assert.equal((await t.client().request('PUT', '/api/me/preferences', { platform: 'PC', genre: null })).status, 401);
+
+    const c = t.client();
+    await signup(c, 'prefs@example.com');
+    assert.equal((await c.request('GET', '/api/auth/me')).json.user.preferredPlatform, null);
+
+    const saved = await c.request('PUT', '/api/me/preferences', { platform: ' PC ', genre: 'RPG' });
+    assert.equal(saved.status, 200);
+    assert.equal(saved.json.user.preferredPlatform, 'PC');
+    const me = (await c.request('GET', '/api/auth/me')).json.user;
+    assert.deepEqual([me.preferredPlatform, me.preferredGenre], ['PC', 'RPG']);
+
+    const cleared = await c.request('PUT', '/api/me/preferences', { platform: '', genre: null });
+    assert.deepEqual([cleared.json.user.preferredPlatform, cleared.json.user.preferredGenre], [null, null]);
+
+    for (const body of [{ platform: 1 }, { genre: 'x'.repeat(51) }]) {
+      assert.equal((await c.request('PUT', '/api/me/preferences', body)).status, 400, JSON.stringify(body));
+    }
+  });
+
   it('비밀번호 변경: 현재 비밀번호 필요, 다른 기기 세션 해제, 새 비밀번호로 로그인', async () => {
     const a = t.client();
     await signup(a, 'pw@example.com');

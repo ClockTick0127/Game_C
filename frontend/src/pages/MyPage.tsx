@@ -13,6 +13,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import type { Game, User } from '../types';
 import { daysUntil, formatKoreanDate } from '../utils/calendar';
+import { GENRE_OPTIONS, PLATFORM_OPTIONS } from '../utils/preferences';
 
 export function MyPage() {
   useDocumentTitle('마이페이지');
@@ -23,6 +24,7 @@ export function MyPage() {
     <div className="mypage">
       <h1 className="page-title">마이페이지</h1>
       <ProfileSection user={user} />
+      <PreferencesSection user={user} />
       <FavoritesSection />
       <SteamSection user={user} />
       <CalendarSubscribeSection />
@@ -30,6 +32,78 @@ export function MyPage() {
       <SessionSection />
       <DeleteAccountSection />
     </div>
+  );
+}
+
+/** 선호 플랫폼·장르: 캘린더를 열면 이 조건이 기본 필터로 적용된다 */
+function PreferencesSection({ user }: { user: User }) {
+  const { setUser } = useAuth();
+  const [platform, setPlatform] = useState(user.preferredPlatform ?? '');
+  const [genre, setGenre] = useState(user.preferredGenre ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const changed = platform !== (user.preferredPlatform ?? '') || genre !== (user.preferredGenre ?? '');
+
+  // 저장된 값이 목록에 없어도(예전 값) 선택지에 남겨 둔다
+  const withCurrent = (options: string[], current: string) =>
+    current && !options.includes(current) ? [...options, current] : options;
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      setUser((await meApi.updatePreferences(platform || null, genre || null)).user);
+      setSaved(true);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="card">
+      <h2>선호 플랫폼·장르</h2>
+      <p className="muted">
+        정해 두면 캘린더를 열 때마다 이 조건으로 게임이 걸러져 보여요. 캘린더에서 언제든 바꿀 수 있어요.
+      </p>
+      <form className="prefs-form" onSubmit={handleSubmit}>
+        <label>
+          플랫폼
+          <select className="filter-select" value={platform} onChange={(e) => setPlatform(e.target.value)}>
+            <option value="">전체</option>
+            {withCurrent(PLATFORM_OPTIONS, platform).map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          장르
+          <select className="filter-select" value={genre} onChange={(e) => setGenre(e.target.value)}>
+            <option value="">전체</option>
+            {withCurrent(GENRE_OPTIONS, genre).map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !changed}>
+          {saving ? '저장 중…' : '저장'}
+        </button>
+      </form>
+      {error && <p className="form-error">{error}</p>}
+      {saved && !changed && (
+        <p className="muted" role="status">
+          저장했어요. 다음에 캘린더를 열 때부터 적용돼요.
+        </p>
+      )}
+    </section>
   );
 }
 

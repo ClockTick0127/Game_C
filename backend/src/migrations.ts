@@ -144,6 +144,44 @@ export const migrations: Migration[] = [
       ALTER TABLE custom_library_games ADD COLUMN steam_checked INTEGER NOT NULL DEFAULT 0;
     `,
   },
+  {
+    version: 10,
+    description: 'Steam 앱 → RAWG 게임 대응표 (위시리스트 가져오기용)',
+    // 이름으로 RAWG를 검색하는 비용이 크므로 한 번 찾은 결과를 모든 사용자가 같이 쓴다.
+    // 못 찾은 앱은 game이 NULL이며, 시간이 지나면(RAWG에 늦게 등록되는 신작) 다시 찾아본다.
+    sql: `
+      CREATE TABLE steam_rawg_matches (
+        steam_app_id INTEGER PRIMARY KEY,
+        game         TEXT,
+        checked_at   INTEGER NOT NULL
+      );
+    `,
+  },
+  {
+    version: 11,
+    description: '선호 플랫폼·장르 (캘린더 기본 필터)',
+    sql: `
+      ALTER TABLE users ADD COLUMN pref_platform TEXT;
+      ALTER TABLE users ADD COLUMN pref_genre TEXT;
+    `,
+  },
+  {
+    version: 12,
+    description: '게임별 플레이 상태·별점·메모 (내 서재)',
+    // game_id는 서재 번호다: Steam 게임은 앱 번호, 직접 추가한 게임은 RAWG 번호에 10억을 더한 값(library_orders와 같다).
+    // 세 칸은 모두 비워 둘 수 있지만, 전부 비면 행을 지우므로 행이 있으면 적어도 하나는 채워져 있다.
+    sql: `
+      CREATE TABLE game_logs (
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        game_id    INTEGER NOT NULL,
+        status     TEXT    CHECK (status IN ('playing', 'cleared', 'backlog', 'dropped')),
+        rating     INTEGER CHECK (rating BETWEEN 1 AND 5),
+        note       TEXT    NOT NULL DEFAULT '',
+        updated_at TEXT    NOT NULL,
+        PRIMARY KEY (user_id, game_id)
+      );
+    `,
+  },
 ];
 
 function currentVersion(db: DatabaseSync): number {

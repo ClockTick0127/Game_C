@@ -1,7 +1,7 @@
 import { useState, type CSSProperties, type KeyboardEvent } from 'react';
-import type { SteamOwnedGame } from '../types';
+import type { GameLog, SteamOwnedGame } from '../types';
 import { useSpinePalette } from '../hooks/useSpinePalette';
-import { coverUrls, playtimeLabel } from '../utils/library';
+import { coverUrls, gameLabel, STATUS_ICONS } from '../utils/library';
 
 /** 직접 추가한 게임의 표지: Steam 공식 표지가 있으면 그것부터, 실패하면 RAWG 이미지 순 */
 function customCoverUrls(game: SteamOwnedGame): string[] {
@@ -30,8 +30,20 @@ export function Cover({ game }: { game: SteamOwnedGame }) {
   return <img src={urls[stage]} alt="" loading="lazy" draggable={false} onError={() => setStage(stage + 1)} />;
 }
 
+/** 플레이 상태를 나타내는 작은 동그라미 배지. 상태가 없으면 그리지 않는다 (글로는 버튼의 aria-label이 알려 준다) */
+function StatusBadge({ log }: { log: GameLog | undefined }) {
+  if (!log?.status) return null;
+  return (
+    <span className="status-badge" data-status={log.status} aria-hidden="true">
+      {STATUS_ICONS[log.status]}
+    </span>
+  );
+}
+
 interface PartProps {
   game: SteamOwnedGame;
+  /** 남겨 둔 플레이 상태·별점·메모 */
+  log?: GameLog;
   editing: boolean;
   held: boolean;
   onPress: () => void;
@@ -41,7 +53,8 @@ interface PartProps {
 }
 
 /** 진열장에 전시된 PC 게임 상자 한 개 */
-export function GameCase({ game, editing, held, onPress, onFlip, onKeyDown }: PartProps) {
+export function GameCase({ game, log, editing, held, onPress, onFlip, onKeyDown }: PartProps) {
+  const label = gameLabel(game, log);
   return (
     <button
       type="button"
@@ -50,16 +63,17 @@ export function GameCase({ game, editing, held, onPress, onFlip, onKeyDown }: Pa
       onClick={onPress}
       onDoubleClick={onFlip}
       onKeyDown={onKeyDown}
-      aria-label={`${game.name}, ${playtimeLabel(game)}`}
+      aria-label={`${game.name}, ${label}`}
       aria-pressed={editing ? held : undefined}
     >
       <span className="case-spine" aria-hidden="true" />
       <span className="case-cover">
         <Cover game={game} />
         <span className="case-shine" aria-hidden="true" />
+        <StatusBadge log={log} />
         <span className="case-caption" aria-hidden="true">
           <strong>{game.name}</strong>
-          <span>{playtimeLabel(game)}</span>
+          <span>{label}</span>
         </span>
       </span>
     </button>
@@ -75,7 +89,7 @@ interface SpineProps extends PartProps {
  * 서재에 꽂힌 게임팩 한 개. 등이 보이도록 세워져 있고, 위에는 게임 아이콘, 그 아래에 제목이 있다.
  * 바탕색과 글자색은 게임의 대표색으로, 제목 폰트는 게임의 분위기(장르·태그)에 맞춰 정한다.
  */
-export function BookSpine({ game, editing, held, onPress, onFlip, onKeyDown, onPeek }: SpineProps) {
+export function BookSpine({ game, log, editing, held, onPress, onFlip, onKeyDown, onPeek }: SpineProps) {
   const [iconFailed, setIconFailed] = useState(false);
   const colors = useSpinePalette(game.appId, paletteImage(game));
   const style = {
@@ -97,9 +111,10 @@ export function BookSpine({ game, editing, held, onPress, onFlip, onKeyDown, onP
       onMouseLeave={() => onPeek(null)}
       onFocus={(e) => onPeek({ game, rect: e.currentTarget.getBoundingClientRect() })}
       onBlur={() => onPeek(null)}
-      aria-label={`${game.name}, ${playtimeLabel(game)}`}
+      aria-label={`${game.name}, ${gameLabel(game, log)}`}
       aria-pressed={editing ? held : undefined}
     >
+      <StatusBadge log={log} />
       <span className={`spine-icon${game.custom ? ' is-cover' : ''}`} aria-hidden="true">
         {iconFailed || !game.iconUrl ? (
           game.name.charAt(0)

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { Game } from '../types';
 import { formatKoreanDate } from '../utils/calendar';
 import { DDay } from './DDay';
-import { GameDetail } from './GameDetail';
+import { FavoriteStar, GameDetail } from './GameDetail';
 import { GameThumb } from './GameThumb';
 
 interface Props {
@@ -127,6 +127,7 @@ export function SidePanel({ game, dayKey, dayGames, month, popularGames, onSelec
   return (
     <aside ref={panelRef} className="side-panel is-open" aria-label="게임 정보">
       <div className="panel-bar">
+        {game && <FavoriteStar game={game} />}
         {game && dayKey ? (
           <button type="button" className="panel-back" onClick={onBack}>
             ‹ {Number(dayKey.slice(5, 7))}월 {Number(dayKey.slice(8))}일 목록
@@ -140,7 +141,7 @@ export function SidePanel({ game, dayKey, dayGames, month, popularGames, onSelec
       </div>
 
       {game ? (
-        <GameDetail game={game} />
+        <GameDetail game={game} hideFavorite />
       ) : (
         <div className="detail-body">
           <h2 className="detail-title">{formatKoreanDate(dayKey!)}</h2>

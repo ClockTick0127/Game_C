@@ -4,6 +4,7 @@ import { HttpError } from '../utils/http.ts';
 import { fetchIosApp, fetchIosAppById, iosAppId, type IosLookup } from './itunes.ts';
 import { fetchGameInfo, fetchRelatedGames, fetchStoreLinks, RawgApiError, type RawgGameInfo } from './rawg.ts';
 import { IS_SAMPLE_MODE } from './releases.ts';
+import { toKorean } from './translate.ts';
 import {
   fetchSteamAppDetails,
   fetchSteamCurrentPlayers,
@@ -80,7 +81,19 @@ interface Loaded {
   complete: boolean;
 }
 
+/** RAWG 소개는 영어라서 한국어로 번역해 내려 준다 (Steam·App Store 소개는 이미 한국어라 그대로 둔다) */
+async function translateDescription(info: StoreInfo): Promise<StoreInfo> {
+  const details = info.details;
+  if (!details?.description) return info;
+  return { ...info, details: { ...details, description: await toKorean(details.description) } };
+}
+
 async function loadStoreInfo(gameId: number): Promise<Loaded> {
+  const loaded = await loadUntranslated(gameId);
+  return { ...loaded, info: await translateDescription(loaded.info) };
+}
+
+async function loadUntranslated(gameId: number): Promise<Loaded> {
   const [links, rawgResult, relatedResult] = await Promise.all([
     fetchStoreLinks(gameId),
     attempt(`RAWG 게임 정보 (game ${gameId})`, () => fetchGameInfo(gameId)),

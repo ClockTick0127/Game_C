@@ -178,3 +178,24 @@ describe('마이페이지 — 모든 기기에서 로그아웃', () => {
     expect(authApi.logoutAll).not.toHaveBeenCalled();
   });
 });
+
+describe('마이페이지 — 선호 플랫폼·장르', () => {
+  it('고르면 저장 버튼이 켜지고, 저장하면 내 정보가 바뀐다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.updatePreferences).mockResolvedValue({
+      user: { ...testUser, preferredPlatform: 'PC', preferredGenre: 'RPG' },
+    });
+    renderMyPage();
+    const save = (await screen.findByRole('heading', { name: '선호 플랫폼·장르' })).closest('section')!;
+    const scope = within(save);
+    expect(scope.getByRole('button', { name: '저장' })).toBeDisabled();
+
+    await user.selectOptions(scope.getByRole('combobox', { name: '플랫폼' }), 'PC');
+    await user.selectOptions(scope.getByRole('combobox', { name: '장르' }), 'RPG');
+    await user.click(scope.getByRole('button', { name: '저장' }));
+
+    expect(meApi.updatePreferences).toHaveBeenCalledWith('PC', 'RPG');
+    expect(await scope.findByRole('status')).toHaveTextContent('저장했어요');
+    expect(scope.getByRole('button', { name: '저장' })).toBeDisabled();
+  });
+});

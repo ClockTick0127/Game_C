@@ -21,6 +21,9 @@ export interface User {
   createdAt: string;
   /** 연동한 Steam 계정(SteamID64). 연동하지 않았으면 null */
   steamId: string | null;
+  /** 선호 플랫폼·장르. 캘린더를 열 때 기본 필터로 적용된다. 정하지 않았으면 null */
+  preferredPlatform: string | null;
+  preferredGenre: string | null;
 }
 
 /** 마이페이지의 Steam 연동 상태 */
@@ -60,7 +63,54 @@ export interface CustomGame {
   steamAppId?: number | null;
 }
 
+/** 하는 중 · 클리어 · 쌓아둠 · 포기 */
+export type GameStatus = 'playing' | 'cleared' | 'backlog' | 'dropped';
+
+/** 사용자가 채운 내용. 채우지 않은 칸은 status·rating이 null, note가 빈 문자열이다 */
+export interface GameLogInput {
+  status: GameStatus | null;
+  /** 1~5 */
+  rating: number | null;
+  /** 최대 200자 */
+  note: string;
+}
+
+/** 게임별 플레이 상태·별점·메모. gameId는 서재 번호(SteamOwnedGame.appId). backend/src/services/gameLog.ts와 동일하게 유지할 것 */
+export interface GameLog extends GameLogInput {
+  gameId: number;
+}
+
 export type Persona = 'horror' | 'scifi' | 'fantasy' | 'retro' | 'cute' | 'sports' | 'strategy' | 'action' | 'default';
+
+/** Steam 위시리스트의 게임 한 건. backend/src/services/steamWishlist.ts와 동일하게 유지할 것 */
+export interface SteamWishlistItem {
+  appId: number;
+  name: string;
+  /** Steam이 알려 준 출시일 (YYYY-MM-DD). 미정이면 null */
+  released: string | null;
+  image: string;
+  /** 이미 관심 게임에 있는 게임 */
+  favorite: boolean;
+}
+
+export interface SteamWishlist {
+  /** 위시리스트 순서. 비어 있으면 위시리스트가 비었거나 비공개인 것이다 (Steam은 둘을 구분해 주지 않는다) */
+  items: SteamWishlistItem[];
+  /** DLC·데모처럼 게임이 아니어서 뺀 항목 수 */
+  excluded: number;
+}
+
+export interface SteamWishlistImportResult {
+  appId: number;
+  /**
+   * added: 추가함 · exists: 이미 관심 게임 · notFound: 같은 이름의 게임을 찾지 못함 · noDate: 출시일 미정이라 넣을 수 없음 ·
+   * error: RAWG 조회 실패(나중에 다시 시도하면 된다)
+   */
+  status: 'added' | 'exists' | 'notFound' | 'noDate' | 'error';
+  game: Game | null;
+  /** error일 때의 사유 */
+  message?: string;
+}
 
 export interface SteamOwnedGames {
   /** true면 프로필의 게임 세부 정보가 비공개라 목록을 볼 수 없다 */

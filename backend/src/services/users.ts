@@ -9,6 +9,9 @@ export interface User {
   createdAt: string;
   /** 연동한 Steam 계정(SteamID64). 연동하지 않았으면 null */
   steamId: string | null;
+  /** 선호 플랫폼·장르. 캘린더를 열 때 기본 필터로 적용된다. 정하지 않았으면 null */
+  preferredPlatform: string | null;
+  preferredGenre: string | null;
 }
 
 export interface UserRow {
@@ -18,10 +21,20 @@ export interface UserRow {
   password_hash: string;
   created_at: string;
   steam_id: string | null;
+  pref_platform: string | null;
+  pref_genre: string | null;
 }
 
 export function toUser(row: UserRow): User {
-  return { id: row.id, email: row.email, nickname: row.nickname, createdAt: row.created_at, steamId: row.steam_id };
+  return {
+    id: row.id,
+    email: row.email,
+    nickname: row.nickname,
+    createdAt: row.created_at,
+    steamId: row.steam_id,
+    preferredPlatform: row.pref_platform,
+    preferredGenre: row.pref_genre,
+  };
 }
 
 const selectByEmail = db.prepare('SELECT * FROM users WHERE email = ?');
@@ -30,6 +43,7 @@ const insertUser = db.prepare('INSERT INTO users (email, nickname, password_hash
 const selectBySteamId = db.prepare('SELECT * FROM users WHERE steam_id = ?');
 const updateSteamIdStmt = db.prepare('UPDATE users SET steam_id = ? WHERE id = ?');
 const updateNicknameStmt = db.prepare('UPDATE users SET nickname = ? WHERE id = ?');
+const updatePreferencesStmt = db.prepare('UPDATE users SET pref_platform = ?, pref_genre = ? WHERE id = ?');
 const updatePasswordStmt = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
 const deleteUserStmt = db.prepare('DELETE FROM users WHERE id = ?');
 
@@ -72,6 +86,11 @@ export function createUser(email: string, nickname: string, passwordHash: string
 
 export function updateNickname(id: number, nickname: string): User {
   updateNicknameStmt.run(nickname, id);
+  return toUser(findUserRowById(id)!);
+}
+
+export function updatePreferences(id: number, platform: string | null, genre: string | null): User {
+  updatePreferencesStmt.run(platform, genre, id);
   return toUser(findUserRowById(id)!);
 }
 

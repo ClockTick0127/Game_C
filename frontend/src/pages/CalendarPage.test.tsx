@@ -162,6 +162,28 @@ describe('CalendarPage — 게임 정보 패널', () => {
     expect(panel().getByText('PRESS START')).toBeInTheDocument();
   });
 
+  it('패널 위쪽 막대의 맨 왼쪽 별 버튼으로 관심 게임을 추가하고 뺀다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(authApi.fetchMe).mockResolvedValue({ user: testUser });
+    vi.mocked(meApi.addFavorite).mockResolvedValue(undefined);
+    vi.mocked(meApi.removeFavorite).mockResolvedValue(undefined);
+    await renderCalendar(makeGames());
+
+    await user.click(grid().getByRole('button', { name: '다 게임' }));
+    const bar = document.querySelector<HTMLElement>('.panel-bar')!;
+    const star = within(bar).getByRole('button', { name: '관심 게임 추가' });
+    expect(bar.firstElementChild).toBe(star); // 닫기 버튼이 있는 막대의 맨 왼쪽
+    expect(panel().queryByText('☆ 관심 게임 추가')).not.toBeInTheDocument();
+
+    await user.click(star);
+    expect(await within(bar).findByRole('button', { name: '관심 게임에서 삭제' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await user.click(within(bar).getByRole('button', { name: '관심 게임에서 삭제' }));
+    expect(await within(bar).findByRole('button', { name: '관심 게임 추가' })).toBeInTheDocument();
+  });
+
   it('날짜를 누르면 그날의 목록을, 게임을 고르면 상세와 "목록으로" 버튼을 보여 준다', async () => {
     const user = userEvent.setup();
     await renderCalendar(makeGames());
@@ -252,6 +274,22 @@ describe('CalendarPage — 검색과 필터', () => {
 
     await user.click(screen.getByRole('button', { name: '필터 초기화' }));
     expect(screen.queryByText(/조건에 맞는 게임이/)).not.toBeInTheDocument();
+    expect(grid().getByRole('button', { name: /포르자/ })).toBeInTheDocument();
+  });
+
+  it('마이페이지에서 정한 선호 플랫폼·장르가 기본 필터로 적용되고, 초기화하면 모두 보인다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(authApi.fetchMe).mockResolvedValue({
+      user: { ...testUser, preferredPlatform: 'PC', preferredGenre: 'Action' },
+    });
+    await renderCalendar(games());
+
+    await waitFor(() => expect(screen.getByRole('combobox', { name: '플랫폼' })).toHaveValue('PC'));
+    expect(screen.getByRole('combobox', { name: '장르' })).toHaveValue('Action');
+    expect(grid().getByRole('button', { name: /하데스 2/ })).toBeInTheDocument();
+    expect(grid().queryByRole('button', { name: /엘든 링/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '필터 초기화' }));
     expect(grid().getByRole('button', { name: /포르자/ })).toBeInTheDocument();
   });
 

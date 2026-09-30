@@ -26,10 +26,12 @@ describe('DB 마이그레이션', () => {
     assert.deepEqual(tables(db), [
       'custom_library_games',
       'favorites',
+      'game_logs',
       'game_styles',
       'library_orders',
       'popular_games',
       'sessions',
+      'steam_rawg_matches',
       'users',
     ]);
     assert.deepEqual(indexes(db), [

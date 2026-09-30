@@ -1,5 +1,5 @@
 import { formatPlaytime } from './steam';
-import type { CustomGame, SteamOwnedGame } from '../types';
+import type { CustomGame, GameLog, GameStatus, SteamOwnedGame } from '../types';
 
 export type LibrarySort = 'playtime' | 'recent' | 'name';
 
@@ -47,6 +47,59 @@ export function customToOwned(game: CustomGame): SteamOwnedGame {
 /** 상자·책에 붙는 플레이 시간 문구. 직접 추가한 게임은 기록이 없으니 그렇게 알린다 */
 export const playtimeLabel = (game: SteamOwnedGame) =>
   game.custom ? '직접 추가한 게임' : formatPlaytime(game.playtimeMinutes);
+
+/** 플레이 상태. 보여 주는 순서이기도 하다 */
+export const GAME_STATUSES: GameStatus[] = ['playing', 'cleared', 'backlog', 'dropped'];
+
+export const STATUS_LABELS: Record<GameStatus, string> = {
+  playing: '하는 중',
+  cleared: '클리어',
+  backlog: '쌓아둠',
+  dropped: '포기',
+};
+
+/** 책등·상자에 붙는 배지 글자. 색만으로 구분하지 않도록 모양도 다르게 한다 */
+export const STATUS_ICONS: Record<GameStatus, string> = {
+  playing: '▶',
+  cleared: '✓',
+  backlog: '≡',
+  dropped: '✕',
+};
+
+/** 메모 글자 수 한도 (서버와 같다) */
+export const MAX_NOTE_LENGTH = 200;
+
+/** "클리어 · ★4". 상태도 별점도 없으면(메모만 있으면) 빈 문자열 */
+export function logSummary(log: GameLog | undefined): string {
+  if (!log) return '';
+  return [log.status && STATUS_LABELS[log.status], log.rating !== null && `★${log.rating}`].filter(Boolean).join(' · ');
+}
+
+/** 상자·책에 붙는 안내 문구: 플레이 시간과, 남겨 둔 기록이 있으면 상태·별점 */
+export const gameLabel = (game: SteamOwnedGame, log: GameLog | undefined) =>
+  [playtimeLabel(game), logSummary(log)].filter(Boolean).join(' · ');
+
+/** 서재에서 고를 수 있는 상태 필터. none은 상태를 정하지 않은 게임 */
+export type StatusFilter = 'all' | 'none' | GameStatus;
+
+export const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
+  all: '모든 상태',
+  ...STATUS_LABELS,
+  none: '상태 없음',
+};
+
+/** 고른 상태의 게임만 남긴다. 기록은 서재 번호(appId)로 찾는다 */
+export function filterByStatus(
+  games: SteamOwnedGame[],
+  logs: Record<number, GameLog>,
+  filter: StatusFilter,
+): SteamOwnedGame[] {
+  if (filter === 'all') return games;
+  return games.filter((g) => {
+    const status = logs[g.appId]?.status ?? null;
+    return filter === 'none' ? status === null : status === filter;
+  });
+}
 
 /** 게임마다 정해지는 책등 색상(0~359). 같은 게임은 항상 같은 색이다 */
 export function spineHue(appId: number): number {

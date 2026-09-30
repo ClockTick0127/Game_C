@@ -1,6 +1,7 @@
 import { RAWG_API_KEY, RAWG_MAX_CALLS_PER_MINUTE } from '../config.ts';
 import type { Game, RelatedGame, RelatedGames } from '../types.ts';
 import { HttpError } from '../utils/http.ts';
+import { normalizeTitle } from '../utils/text.ts';
 import { isAdultGame } from './contentFilter.ts';
 import { dedupeGames } from './dedupe.ts';
 
@@ -268,6 +269,16 @@ export async function searchGameByName(name: string, year?: number): Promise<Gam
     exact[0] ??
     data.results[0];
   return match ? normalize(match) : null;
+}
+
+/**
+ * 이름이 정확히 같은 게임 후보들. 이름이 같은 리메이크·이식판이 여러 개일 수 있어 목록으로 돌려주고 고르는 것은 호출한 쪽의 몫이다.
+ * (Steam 위시리스트처럼 다른 스토어의 게임을 RAWG 항목과 짝지을 때 쓴다)
+ */
+export async function searchGamesExact(name: string): Promise<Game[]> {
+  const data = await rawgGet<RawgListResponse>('/games', { search: name, search_precise: 'true', page_size: '10' });
+  const target = normalizeTitle(name);
+  return data.results.filter((g) => normalizeTitle(g.name) === target).map(normalize);
 }
 
 /** 이름으로 게임 여러 개를 찾는다 (서재에 직접 추가할 게임을 고르는 용도). 성인 게임은 뺀다 */

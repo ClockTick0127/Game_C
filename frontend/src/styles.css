@@ -1654,6 +1654,32 @@ a.metascore:hover {
   background: var(--surface);
 }
 
+/* 별 버튼은 막대의 맨 왼쪽에, 뒤로 가기와 닫기는 그 오른쪽에 둔다 */
+.panel-star {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.panel-star:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.panel-star.active {
+  color: #f5c542;
+}
+
+.panel-star-error {
+  color: var(--danger, #ff6b6b);
+  font-size: 12px;
+}
+
 .panel-back {
   padding: 6px 8px;
   border: 0;
@@ -1661,6 +1687,11 @@ a.metascore:hover {
   background: transparent;
   color: var(--text-dim);
   font-size: 13px;
+}
+
+.panel-bar > .panel-back,
+.panel-bar > span:not(.panel-star-error) {
+  margin-right: auto;
 }
 
 .panel-back:hover {
@@ -2288,6 +2319,58 @@ a.metascore:hover {
 .steam-achievements small {
   display: block;
   color: var(--text-dim);
+}
+
+/* Steam 위시리스트 가져오기 */
+.wishlist {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.wishlist-toolbar,
+.wishlist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.wishlist-actions {
+  margin: 4px 0 10px;
+}
+
+.wishlist-item {
+  cursor: pointer;
+}
+
+.wishlist-item input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.wishlist-item.is-favorite {
+  opacity: 0.7;
+}
+
+.wishlist-badge {
+  flex: none;
+  color: var(--accent);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.wishlist-summary p {
+  margin: 0;
+}
+
+.wishlist-summary ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
 }
 
 /* 인기 있는 게임 */
@@ -3129,4 +3212,196 @@ a.metascore:hover {
 
 .recent-caption span {
   color: #cfd3df;
+}
+
+/* 마이페이지: 선호 플랫폼·장르 */
+.prefs-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.prefs-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+/* 내 서재: 플레이 상태·별점·메모 */
+.status-tag,
+.status-badge {
+  --tag: var(--text-dim);
+  --tag-soft: var(--tint);
+  --tag-ink: #fff;
+}
+
+.status-tag[data-status='playing'],
+.status-badge[data-status='playing'] {
+  --tag: var(--accent);
+  --tag-soft: var(--accent-soft);
+}
+
+.status-tag[data-status='cleared'],
+.status-badge[data-status='cleared'] {
+  --tag: var(--success);
+  --tag-soft: rgba(74, 222, 128, 0.16);
+  --tag-ink: #06230f;
+}
+
+.status-tag[data-status='backlog'],
+.status-badge[data-status='backlog'] {
+  --tag: var(--gold);
+  --tag-soft: rgba(255, 200, 87, 0.16);
+  --tag-ink: #2b1d00;
+}
+
+.status-tag[data-status='dropped'],
+.status-badge[data-status='dropped'] {
+  --tag: var(--error);
+  --tag-soft: var(--error-soft);
+  --tag-ink: #2a0808;
+}
+
+.log-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.log-editor h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.log-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.status-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.status-tag {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status-tag:hover {
+  border-color: var(--tag);
+}
+
+.status-tag[aria-pressed='true'] {
+  border-color: var(--tag);
+  background: var(--tag-soft);
+  box-shadow: 0 0 0 1px var(--tag);
+}
+
+.status-tag:focus-visible,
+.star-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--border);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.star-btn.on {
+  color: var(--star);
+}
+
+.star-btn:hover {
+  background: var(--star-soft);
+}
+
+.log-rating-text {
+  font-size: 13px;
+}
+
+.log-note {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.log-note:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.log-count {
+  align-self: flex-end;
+  margin-top: -6px;
+  font-size: 12px;
+}
+
+.log-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 책등·상자 모서리에 붙는 상태 배지 */
+.status-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--tag);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
+  color: var(--tag-ink);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.case-cover .status-badge {
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
 }

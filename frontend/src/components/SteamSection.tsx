@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { SteamAchievements, SteamOwnedGame, SteamOwnedGames, SteamStatus, User } from '../types';
 import { formatPlaytime, steamAuthUrl, steamResult } from '../utils/steam';
 import { ConfirmDialog } from './ConfirmDialog';
+import { SteamWishlist } from './SteamWishlist';
 
 const PAGE_SIZE = 30;
 
@@ -87,6 +88,8 @@ function LinkedSteam() {
         ) : (
           <p className="muted">서버에 Steam API 키가 설정되지 않아 보유 게임과 업적은 볼 수 없습니다.</p>
         ))}
+      {/* 위시리스트는 Steam 공개 API를 쓰므로 서버에 API 키가 없어도 된다 */}
+      {status && <SteamWishlist />}
       {confirming && (
         <ConfirmDialog
           title="Steam 연동 해제"

@@ -4,17 +4,27 @@ import { getOrCreateCalendarToken, resetCalendarToken } from '../services/calend
 import { gamesLimiter, sensitiveLimiter, steamDataLimiter } from '../middleware/rateLimit.ts';
 import { addFavorite, listFavorites, removeFavorite } from '../services/favorites.ts';
 import { addCustomGame, listCustomGames, parseCustomGame, removeCustomGame } from '../services/customLibrary.ts';
+import { deleteGameLog, listGameLogs, parseGameLog, saveGameLog } from '../services/gameLog.ts';
 import { getPersonas, requestStyles } from '../services/gameStyle.ts';
 import { getLibraryOrder, parseLibraryOrder, saveLibraryOrder } from '../services/libraryOrder.ts';
-import { hasHangul, searchGamesKorean } from '../services/koreanSearch.ts';
+import { searchGamesKorean } from '../services/koreanSearch.ts';
+import { hasHangul } from '../services/translate.ts';
 import { searchGames } from '../services/rawg.ts';
 import { IS_SAMPLE_MODE } from '../services/releases.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
 import { deleteOtherSessions } from '../services/sessions.ts';
 import { fetchAchievements, fetchOwnedGames, fetchProfile, steamApiConfigured } from '../services/steamProfile.ts';
-import { deleteUser, findUserRowById, setSteamId, updateNickname, updatePasswordHash } from '../services/users.ts';
+import { favoriteAppIds, fetchWishlist, importWishlistGames, parseAppIds } from '../services/steamWishlist.ts';
+import {
+  deleteUser,
+  findUserRowById,
+  setSteamId,
+  updateNickname,
+  updatePasswordHash,
+  updatePreferences,
+} from '../services/users.ts';
 import { HttpError } from '../utils/http.ts';
-import { parseGame, requireText, validateNickname, validatePassword } from '../utils/validate.ts';
+import { parseGame, requireText, validateNickname, validatePassword, validatePreference } from '../utils/validate.ts';
 
 /** 로그인한 사용자 본인의 정보를 다루는 API (마이페이지) */
 export const meRouter = Router();
@@ -38,6 +48,13 @@ function parseGameId(value: string): number {
 meRouter.patch('/', (req, res) => {
   const user = currentUser(req);
   res.json({ user: updateNickname(user.id, validateNickname(req.body?.nickname)) });
+});
+
+/** PUT /api/me/preferences { platform, genre } — 선호 플랫폼·장르 (null이면 정하지 않음). 캘린더 기본 필터가 된다 */
+meRouter.put('/preferences', (req, res) => {
+  const platform = validatePreference(req.body?.platform, '플랫폼');
+  const genre = validatePreference(req.body?.genre, '장르');
+  res.json({ user: updatePreferences(currentUser(req).id, platform, genre) });
 });
 
 /** PUT /api/me/password { currentPassword, newPassword } — 다른 기기의 로그인은 해제된다 */
@@ -138,6 +155,31 @@ meRouter.get('/steam/games/:appId/achievements', steamDataLimiter, async (req, r
   res.json(await fetchAchievements(linkedSteamId(req), appId));
 });
 
+// --- Steam 위시리스트 → 관심 게임 ---
+
+/** GET /api/me/steam/wishlist — 위시리스트 게임 목록. 이미 관심 게임인 것은 favorite: true (Steam API 키 불필요) */
+meRouter.get('/steam/wishlist', steamDataLimiter, async (req, res) => {
+  const user = currentUser(req);
+  const wishlist = await fetchWishlist(linkedSteamId(req));
+  const favorites = favoriteAppIds(
+    user.id,
+    wishlist.items.map((item) => item.appId),
+  );
+  res.json({
+    ...wishlist,
+    items: wishlist.items.map((item) => ({ ...item, favorite: favorites.has(item.appId) })),
+  });
+});
+
+/** POST /api/me/steam/wishlist/import { appIds: number[] } — 위시리스트 게임을 관심 게임에 추가 (한 번에 최대 10개) */
+meRouter.post('/steam/wishlist/import', gamesLimiter, async (req, res) => {
+  const user = currentUser(req);
+  const steamId = linkedSteamId(req);
+  const appIds = parseAppIds(req.body?.appIds);
+  if (IS_SAMPLE_MODE) throw new HttpError(503, '샘플 모드에서는 위시리스트를 가져올 수 없습니다.');
+  res.json({ results: await importWishlistGames(user.id, steamId, appIds) });
+});
+
 // --- 내 서재 배치 ---
 
 /** GET /api/me/library-order — 저장한 배치(앱 번호 목록). 저장한 적이 없으면 빈 배열 */
@@ -177,5 +219,25 @@ meRouter.put('/library-games/:gameId', (req, res) => {
 /** DELETE /api/me/library-games/:gameId */
 meRouter.delete('/library-games/:gameId', (req, res) => {
   removeCustomGame(currentUser(req).id, parseGameId(req.params.gameId));
+  res.status(204).end();
+});
+
+// --- 게임별 플레이 상태·별점·메모 (gameId는 서재 번호) ---
+
+/** GET /api/me/game-logs — 기록을 남긴 모든 게임 */
+meRouter.get('/game-logs', (req, res) => {
+  res.json({ logs: listGameLogs(currentUser(req).id) });
+});
+
+/** PUT /api/me/game-logs/:gameId { status, rating, note } — 통째로 덮어쓴다. 모두 비우면 기록이 지워진다 */
+meRouter.put('/game-logs/:gameId', (req, res) => {
+  const gameId = parseGameId(req.params.gameId);
+  saveGameLog(currentUser(req).id, gameId, parseGameLog(req.body));
+  res.status(204).end();
+});
+
+/** DELETE /api/me/game-logs/:gameId */
+meRouter.delete('/game-logs/:gameId', (req, res) => {
+  deleteGameLog(currentUser(req).id, parseGameId(req.params.gameId));
   res.status(204).end();
 });

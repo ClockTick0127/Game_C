@@ -27,6 +27,15 @@ export function validateNickname(value: unknown): string {
   return nickname;
 }
 
+/** 선호 플랫폼·장르. 비우면(빈 문자열·null) 정하지 않은 것(null)이다 */
+export function validatePreference(value: unknown, label: string): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') throw new HttpError(400, `${label}이(가) 올바르지 않습니다.`);
+  const text = value.trim();
+  if (text.length > 50) throw new HttpError(400, `${label}은(는) 50자 이하로 입력하세요.`);
+  return text || null;
+}
+
 /** 비어 있지 않은 문자열인지만 확인한다 (로그인처럼 형식 규칙을 알려줄 필요가 없는 곳에서 사용). */
 export function requireText(value: unknown, message: string): string {
   if (typeof value !== 'string' || value === '') throw new HttpError(400, message);

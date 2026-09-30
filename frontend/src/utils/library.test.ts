@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type { SteamOwnedGame } from '../types';
-import { filterAndSort, formatTotalHours, placeAt, removeFrom, spineHue } from './library';
+import type { GameLog, SteamOwnedGame } from '../types';
+import {
+  filterAndSort,
+  filterByStatus,
+  formatTotalHours,
+  gameLabel,
+  logSummary,
+  placeAt,
+  removeFrom,
+  spineHue,
+  STATUS_FILTER_LABELS,
+} from './library';
 
 const g = (appId: number, name: string, playtimeMinutes: number, lastPlayedAt: string | null): SteamOwnedGame => ({
   appId,
@@ -92,5 +102,45 @@ describe('removeFrom · spineHue', () => {
       expect(spineHue(id)).toBeGreaterThanOrEqual(0);
       expect(spineHue(id)).toBeLessThan(360);
     }
+  });
+});
+
+describe('플레이 상태·별점 기록', () => {
+  const log = (gameId: number, status: GameLog['status'], rating: number | null = null, note = ''): GameLog => ({
+    gameId,
+    status,
+    rating,
+    note,
+  });
+  const logs = {
+    1: log(1, 'playing', 4),
+    2: log(2, 'cleared'),
+    3: log(3, null, 5, '상태는 안 정함'),
+  };
+
+  it('요약은 "상태 · 별점"이고, 상태와 별점이 없으면(메모만 있으면) 비어 있다', () => {
+    expect(logSummary(log(1, 'cleared', 4))).toBe('클리어 · ★4');
+    expect(logSummary(log(1, 'backlog'))).toBe('쌓아둠');
+    expect(logSummary(log(1, null, 3))).toBe('★3');
+    expect(logSummary(log(1, null, null, '메모만'))).toBe('');
+    expect(logSummary(undefined)).toBe('');
+  });
+
+  it('게임 안내 문구는 플레이 시간 뒤에 기록 요약이 붙는다', () => {
+    expect(gameLabel(games[0]!, log(1, 'cleared', 5))).toBe('10.0시간 · 클리어 · ★5');
+    expect(gameLabel(games[0]!, undefined)).toBe('10.0시간');
+  });
+
+  it('상태로 거른다. 전체는 그대로, 상태 없음은 기록이 없거나 상태를 안 정한 게임', () => {
+    expect(filterByStatus(games, logs, 'all')).toBe(games);
+    expect(names(filterByStatus(games, logs, 'playing'))).toEqual(['Terraria']);
+    expect(names(filterByStatus(games, logs, 'cleared'))).toEqual(['Portal']);
+    expect(filterByStatus(games, logs, 'dropped')).toEqual([]);
+    // Never Played(3)는 별점만 있고 상태가 없고, 가나다(4)는 기록이 없다
+    expect(names(filterByStatus(games, logs, 'none'))).toEqual(['Never Played', '가나다']);
+  });
+
+  it('필터 목록은 전체 → 네 가지 상태 → 상태 없음 순서다', () => {
+    expect(Object.keys(STATUS_FILTER_LABELS)).toEqual(['all', 'playing', 'cleared', 'backlog', 'dropped', 'none']);
   });
 });

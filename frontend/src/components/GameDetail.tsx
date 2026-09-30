@@ -10,7 +10,8 @@ import { GameThumb } from './GameThumb';
 import { Modal } from './Modal';
 import { StoreSection } from './StoreSection';
 
-function FavoriteButton({ game }: { game: Game }) {
+/** 관심 게임 추가·삭제. 로그인하지 않았으면 로그인 화면으로 보낸다 */
+function useFavoriteToggle(game: Game) {
   const { user } = useAuth();
   const { isFavorite, toggle } = useFavorites();
   const navigate = useNavigate();
@@ -35,12 +36,42 @@ function FavoriteButton({ game }: { game: Game }) {
     }
   };
 
+  return { user, active, pending, error, toggle: handleClick };
+}
+
+/** 패널 위쪽 막대에 놓는 별 모양 관심 게임 버튼 */
+export function FavoriteStar({ game }: { game: Game }) {
+  const { active, pending, error, toggle } = useFavoriteToggle(game);
+  return (
+    <>
+      <button
+        type="button"
+        className={active ? 'panel-star active' : 'panel-star'}
+        onClick={toggle}
+        disabled={pending}
+        aria-pressed={active}
+        aria-label={active ? '관심 게임에서 삭제' : '관심 게임 추가'}
+        title={active ? '관심 게임에서 삭제' : '관심 게임 추가'}
+      >
+        {active ? '★' : '☆'}
+      </button>
+      {error && (
+        <span className="panel-star-error" role="alert">
+          {error}
+        </span>
+      )}
+    </>
+  );
+}
+
+function FavoriteButton({ game }: { game: Game }) {
+  const { user, active, pending, error, toggle } = useFavoriteToggle(game);
   return (
     <>
       <button
         type="button"
         className={active ? 'btn fav-btn active' : 'btn fav-btn'}
-        onClick={handleClick}
+        onClick={toggle}
         disabled={pending}
         aria-pressed={active}
       >
@@ -53,7 +84,7 @@ function FavoriteButton({ game }: { game: Game }) {
 }
 
 /** 게임 상세 내용. 캘린더의 사이드 패널과 마이페이지의 모달에서 함께 쓴다. */
-export function GameDetail({ game }: { game: Game }) {
+export function GameDetail({ game, hideFavorite = false }: { game: Game; hideFavorite?: boolean }) {
   return (
     <>
       <GameThumb game={game} className="detail-hero" />
@@ -81,7 +112,7 @@ export function GameDetail({ game }: { game: Game }) {
         )}
 
         <div className="detail-actions">
-          <FavoriteButton game={game} />
+          {!hideFavorite && <FavoriteButton game={game} />}
           {game.url && (
             <a className="detail-link" href={game.url} target="_blank" rel="noreferrer">
               RAWG에서 자세히 보기 ↗

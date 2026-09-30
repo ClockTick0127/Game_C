@@ -5,7 +5,7 @@ import * as authApi from '../api/auth';
 import * as meApi from '../api/me';
 import { testUser } from '../test/fixtures';
 import { renderApp } from '../test/render';
-import type { SteamOwnedGame, User } from '../types';
+import type { GameLog, SteamOwnedGame, User } from '../types';
 import { LibraryPage } from './LibraryPage';
 
 vi.mock('../api/auth');
@@ -51,6 +51,7 @@ beforeEach(() => {
   vi.mocked(meApi.fetchLibraryOrder).mockResolvedValue({ order: [] });
   vi.mocked(meApi.saveLibraryOrder).mockResolvedValue(undefined);
   vi.mocked(meApi.fetchCustomGames).mockResolvedValue({ games: [] });
+  vi.mocked(meApi.fetchGameLogs).mockResolvedValue({ logs: [] });
   vi.mocked(meApi.fetchSteamGames).mockResolvedValue({ private: false, games: GAMES });
 });
 
@@ -622,5 +623,164 @@ describe('LibraryPage — 최근 플레이', () => {
     renderLibrary();
     await screen.findByRole('button', { name: /^Terraria,/ });
     expect(screen.queryByText('최근 플레이')).not.toBeInTheDocument();
+  });
+});
+
+describe('LibraryPage — 플레이 상태·별점·메모', () => {
+  const log = (gameId: number, status: GameLog['status'], rating: number | null = null, note = ''): GameLog => ({
+    gameId,
+    status,
+    rating,
+    note,
+  });
+  const labelOf = (name: string) => item(name).getAttribute('aria-label');
+  const openDialog = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+    await user.click(await screen.findByRole('button', { name: new RegExp(`^${name},`) }));
+    return screen.findByRole('dialog', { name });
+  };
+
+  beforeEach(() => {
+    vi.mocked(meApi.fetchSteamAchievements).mockResolvedValue({ supported: false, private: false, achievements: [] });
+    vi.mocked(meApi.saveGameLog).mockResolvedValue(undefined);
+    vi.mocked(meApi.deleteGameLog).mockResolvedValue(undefined);
+  });
+
+  it('남겨 둔 상태·별점이 책과 상자의 배지와 안내 문구에 나온다', async () => {
+    vi.mocked(meApi.fetchLibraryOrder).mockResolvedValue({ order: [1] });
+    vi.mocked(meApi.fetchGameLogs).mockResolvedValue({
+      logs: [log(1, 'playing', 4, '보스가 어렵다'), log(2, 'cleared'), log(4, null, 2)],
+    });
+    renderLibrary();
+    await screen.findByRole('button', { name: /^Terraria,/ });
+
+    expect(labelOf('Terraria')).toBe('Terraria, 10.0시간 · 하는 중 · ★4'); // 진열장의 상자
+    expect(labelOf('Portal')).toBe('Portal, 1.5시간 · 클리어'); // 서재의 책
+    expect(labelOf('Alpha')).toBe('Alpha, 10분 · ★2');
+    expect(labelOf('Zero')).toBe('Zero, 플레이 기록 없음'); // 기록이 없으면 그대로
+
+    expect(item('Terraria').querySelector('.status-badge')).toHaveAttribute('data-status', 'playing');
+    expect(item('Portal').querySelector('.status-badge')).toHaveAttribute('data-status', 'cleared');
+    expect(item('Alpha').querySelector('.status-badge')).toBeNull(); // 별점만 있으면 배지는 없다
+    expect(item('Zero').querySelector('.status-badge')).toBeNull();
+  });
+
+  it('책 위에 마우스를 올리면 말풍선에 상태와 별점이 함께 나온다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchGameLogs).mockResolvedValue({ logs: [log(1, 'cleared', 5)] });
+    renderLibrary();
+    await user.hover(await screen.findByRole('button', { name: /^Terraria,/ }));
+    expect(document.querySelector('.spine-tip')).toHaveTextContent('10.0시간 · 클리어 · ★5');
+  });
+
+  it('상태별로 골라 볼 수 있다. 진열장은 그대로이고, 배치를 바꾸는 중에는 필터를 무시한다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchLibraryOrder).mockResolvedValue({ order: [3] });
+    vi.mocked(meApi.fetchGameLogs).mockResolvedValue({
+      logs: [log(1, 'playing'), log(2, 'cleared'), log(3, 'cleared')],
+    });
+    renderLibrary();
+    await screen.findByRole('button', { name: /^Zero,/ });
+    const filter = screen.getByLabelText('상태별로 보기');
+
+    await user.selectOptions(filter, 'cleared');
+    expect(libraryNames()).toEqual(['Portal']);
+    expect(shelfNames()).toEqual(['Zero']);
+
+    await user.selectOptions(filter, 'playing');
+    expect(libraryNames()).toEqual(['Terraria']);
+
+    await user.selectOptions(filter, 'none'); // 상태를 정하지 않은 게임
+    expect(libraryNames()).toEqual(['Alpha']);
+
+    await user.selectOptions(filter, 'dropped');
+    expect(await screen.findByText('찾는 게임이 서재에 없어요.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '배치 바꾸기' }));
+    expect(libraryNames()).toEqual(['Terraria', 'Portal', 'Alpha']);
+  });
+
+  it('상태 필터와 검색어는 함께 적용된다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchGameLogs).mockResolvedValue({ logs: [log(1, 'cleared'), log(2, 'cleared')] });
+    renderLibrary();
+    await screen.findByRole('button', { name: /^Terraria,/ });
+
+    await user.selectOptions(screen.getByLabelText('상태별로 보기'), 'cleared');
+    expect(libraryNames()).toEqual(['Terraria', 'Portal']);
+    await user.type(screen.getByLabelText('서재에서 검색'), 'port');
+    expect(libraryNames()).toEqual(['Portal']);
+  });
+
+  it('게임 창에서 상태·별점·메모를 저장하면 서버에 보내고 서재에 바로 반영된다', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    const dialog = await openDialog(user, 'Portal');
+
+    await user.click(within(dialog).getByRole('button', { name: /클리어/ }));
+    await user.click(within(dialog).getByRole('button', { name: '별 5개' }));
+    await user.type(within(dialog).getByRole('textbox', { name: '메모' }), '퍼즐의 명작');
+    await user.click(within(dialog).getByRole('button', { name: '저장' }));
+
+    await waitFor(() =>
+      expect(meApi.saveGameLog).toHaveBeenCalledWith(2, { status: 'cleared', rating: 5, note: '퍼즐의 명작' }),
+    );
+    expect(await within(dialog).findByText('저장했어요.')).toBeInTheDocument();
+    expect(labelOf('Portal')).toBe('Portal, 1.5시간 · 클리어 · ★5');
+
+    // 닫았다가 다시 열어도 남겨 둔 기록이 채워져 있다
+    await user.click(within(dialog).getByRole('button', { name: '닫기' }));
+    const reopened = await openDialog(user, 'Portal');
+    expect(within(reopened).getByRole('button', { name: /클리어/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(reopened).getByRole('textbox', { name: '메모' })).toHaveValue('퍼즐의 명작');
+  });
+
+  it('직접 추가한 게임은 서재 번호(RAWG 번호 + 10억)로 기록한다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchCustomGames).mockResolvedValue({
+      games: [{ id: 3498, name: 'Grand Theft Auto V', image: 'https://media.rawg.io/a.jpg' }],
+    });
+    renderLibrary();
+    const dialog = await openDialog(user, 'Grand Theft Auto V');
+
+    await user.click(within(dialog).getByRole('button', { name: /쌓아둠/ }));
+    await user.click(within(dialog).getByRole('button', { name: '저장' }));
+    await waitFor(() =>
+      expect(meApi.saveGameLog).toHaveBeenCalledWith(1_000_003_498, { status: 'backlog', rating: null, note: '' }),
+    );
+  });
+
+  it('기록 지우기를 누르면 서버에서 지우고 배지도 사라진다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchGameLogs).mockResolvedValue({ logs: [log(1, 'dropped', 1, '별로')] });
+    renderLibrary();
+    const dialog = await openDialog(user, 'Terraria');
+    expect(item('Terraria').querySelector('.status-badge')).not.toBeNull();
+
+    await user.click(within(dialog).getByRole('button', { name: '기록 지우기' }));
+    await waitFor(() => expect(meApi.deleteGameLog).toHaveBeenCalledWith(1));
+    await waitFor(() => expect(item('Terraria').querySelector('.status-badge')).toBeNull());
+    expect(labelOf('Terraria')).toBe('Terraria, 10.0시간');
+    expect(within(dialog).queryByRole('button', { name: '기록 지우기' })).not.toBeInTheDocument();
+  });
+
+  it('저장에 실패하면 오류를 보여 주고 서재는 그대로다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.saveGameLog).mockRejectedValue(new Error('서버에 연결할 수 없습니다.'));
+    renderLibrary();
+    const dialog = await openDialog(user, 'Portal');
+
+    await user.click(within(dialog).getByRole('button', { name: /포기/ }));
+    await user.click(within(dialog).getByRole('button', { name: '저장' }));
+
+    expect(await within(dialog).findByText('서버에 연결할 수 없습니다.')).toBeInTheDocument();
+    expect(item('Portal').querySelector('.status-badge')).toBeNull();
+  });
+
+  it('기록을 못 불러와도 서재는 보여 준다', async () => {
+    vi.mocked(meApi.fetchGameLogs).mockRejectedValue(new Error('실패'));
+    renderLibrary();
+    await screen.findByRole('button', { name: /^Terraria,/ });
+    expect(libraryNames()).toHaveLength(4);
+    expect(document.querySelector('.status-badge')).toBeNull();
   });
 });

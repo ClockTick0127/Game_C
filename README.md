@@ -22,6 +22,8 @@
 - 라이트/다크 테마: 상단 버튼으로 시스템 설정 → 라이트 → 다크 전환 (선택은 브라우저에 저장)
 - 캘린더 구독: 관심 게임 출시일을 구글·애플 캘린더 등에서 볼 수 있는 구독 주소(.ics) 제공 (마이페이지)
 - 마이페이지: 프로필(닉네임 수정), 관심 게임 목록(출시 예정 D-day / 출시됨), 비밀번호 변경, 모든 기기에서 로그아웃, 회원 탈퇴
+- 게임 기록(내 서재): 게임마다 플레이 상태 태그(하는 중 · 클리어 · 쌓아둠 · 포기), 별점(1~5), 짧은 메모(200자)를 남깁니다. 서재의 게임을 눌러 열리는 창에서 저장하면 책등·상자에 상태 배지가 붙고, 마우스를 올린 말풍선에도 나옵니다. 서재 위쪽의 "상태별로 보기"로 골라 볼 수 있습니다(진열장은 그대로). Steam 게임과 직접 추가한 게임 모두 기록할 수 있습니다
+- Steam 위시리스트 가져오기: Steam을 연동한 계정은 마이페이지에서 위시리스트 게임을 골라 관심 게임에 한 번에 추가할 수 있습니다(캘린더 ★ 표시·D-day·구독 주소에 그대로 반영). 이름이 정확히 같은 RAWG 게임을 찾아 짝짓고, 못 찾거나 출시일이 미정인 게임은 이유와 함께 알려 줍니다. DLC·데모는 제외되며, Steam 프로필의 "게임 세부 정보"가 공개여야 합니다. Steam API 키 없이도 동작합니다
 
 ## 시작하기
 
@@ -86,6 +88,11 @@ backend/                          Node.js + Express + SQLite(node:sqlite)
 | GET | `/api/me/calendar-token` 🔒 | 캘린더 구독 주소용 토큰 (없으면 생성). `{ token }` |
 | POST | `/api/me/calendar-token` 🔒 | 토큰 재발급 (기존 구독 주소 무효화). `{ token }` |
 | GET | `/api/calendar/:token.ics` | 관심 게임 캘린더(iCalendar). 로그인 불필요, 토큰이 곧 열쇠 |
+| GET | `/api/me/steam/wishlist` 🔒 | Steam 위시리스트 게임 목록(Steam 연동 필요). `{ items: [{ appId, name, released, image, favorite }], excluded }` (5분 캐시) |
+| POST | `/api/me/steam/wishlist/import` 🔒 | 위시리스트 게임을 관심 게임에 추가. `{ appIds: number[] }`(최대 10개) → `{ results: [{ appId, status, game }] }`. status는 added · exists · notFound · noDate |
+| GET | `/api/me/game-logs` 🔒 | 플레이 상태·별점·메모를 남긴 모든 게임. `{ logs: [{ gameId, status, rating, note }] }`. gameId는 서재 번호(Steam 앱 번호, 직접 추가한 게임은 RAWG 번호 + 10억) |
+| PUT | `/api/me/game-logs/:gameId` 🔒 | 기록을 통째로 덮어씀. `{ status, rating, note }`(status는 playing · cleared · backlog · dropped, rating은 1~5, note는 200자 이하, 모두 생략 가능). 셋 다 비우면 기록이 지워짐 |
+| DELETE | `/api/me/game-logs/:gameId` 🔒 | 기록 삭제 |
 
 🔒 로그인 필요 (없으면 401). 실패 시 `{ error: "사유" }`와 함께 400 / 401 / 409(이메일 중복) / 502·504(RAWG 오류) 등을 반환합니다.
 

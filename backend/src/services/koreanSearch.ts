@@ -1,12 +1,11 @@
 import type { Game } from '../types.ts';
 import { createPromiseCache } from '../utils/cache.ts';
 import { searchGameByName, searchGames } from './rawg.ts';
+import { translateCached } from './translate.ts';
 
 const TIMEOUT_MS = 8_000;
 /** 한글 검색어 하나로 RAWG를 부르는 횟수를 제한한다 (RAWG 호출 한도를 아끼기 위해) */
 const MAX_STEAM_MATCHES = 4;
-
-export const hasHangul = (text: string): boolean => /[\u3131-\u318e\uac00-\ud7a3]/.test(text);
 
 /** Steam 스토어에서 한국어 이름으로 찾은 앱 번호 (앱만, DLC·번들 제외) */
 async function searchSteamKorean(query: string): Promise<number[]> {
@@ -40,27 +39,6 @@ const cachedEnglishName = createPromiseCache<number, string | null>({
   shouldCache: (name) => name !== null,
 });
 
-/** 한글 → 영어 번역. 영어 제목의 한글 발음("엘든링")도 원래 제목("Elden Ring")으로 바꿔 준다 */
-async function translateToEnglish(text: string): Promise<string | null> {
-  const params = new URLSearchParams({ client: 'gtx', sl: 'ko', tl: 'en', dt: 't', q: text });
-  const res = await fetch(`https://translate.googleapis.com/translate_a/single?${params}`, {
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  if (!res.ok) return null;
-  const body = (await res.json()) as [[string | null][]?];
-  const translated = (body[0] ?? [])
-    .map((part) => part[0] ?? '')
-    .join('')
-    .trim();
-  return translated && translated.toLowerCase() !== text.toLowerCase() ? translated : null;
-}
-
-const cachedTranslation = createPromiseCache<string, string | null>({
-  ttlMs: 7 * 24 * 60 * 60 * 1000,
-  maxEntries: 1000,
-  shouldCache: (t) => t !== null,
-});
-
 const warn = (what: string, query: string) => (err: unknown) => {
   console.warn(`${what} 실패 (${query}):`, err instanceof Error ? err.message : err);
   return [] as Game[];
@@ -78,7 +56,7 @@ async function viaSteam(query: string): Promise<Game[]> {
 
 /** 영어로 번역한 검색어로 찾은 게임 */
 async function viaTranslation(query: string): Promise<Game[]> {
-  const english = await cachedTranslation(query.toLowerCase(), () => translateToEnglish(query));
+  const english = await translateCached(query, 'ko', 'en');
   return english ? searchGames(english) : [];
 }
 
