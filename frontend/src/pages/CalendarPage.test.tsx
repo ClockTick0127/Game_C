@@ -141,10 +141,10 @@ describe('CalendarPage — 달 이동', () => {
 describe('CalendarPage — 게임 정보 패널', () => {
   const makeGames = () => [game(1, '가 게임', 10), game(2, '나 게임', 10), game(3, '다 게임', 20)];
 
-  it('처음에는 안내와 이번 달 인기 게임 순위를 보여 준다', async () => {
+  it('처음에는 안내와 이번 달 Hot Issue 순위를 보여 준다', async () => {
     await renderCalendar(makeGames());
     expect(panel().getByText('PRESS START')).toBeInTheDocument();
-    expect(panel().getByRole('heading', { name: '6월 인기 게임 TOP 3' })).toBeInTheDocument();
+    expect(panel().getByRole('heading', { name: '6월 Hot Issue TOP 3' })).toBeInTheDocument();
     const ranking = panel().getAllByRole('listitem');
     expect(ranking[0]).toHaveTextContent('가 게임'); // 백엔드가 준 인기순 그대로
   });
