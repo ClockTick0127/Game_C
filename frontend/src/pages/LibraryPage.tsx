@@ -7,6 +7,7 @@ import { LibraryStats } from '../components/LibraryStats';
 import { BookSpine, Cover, GameCase, RecentCard } from '../components/LibraryParts';
 import { Modal } from '../components/Modal';
 import { ShowcaseShare } from '../components/ShowcaseShare';
+import { TodayPicks } from '../components/TodayPicks';
 import { SteamAchievementList } from '../components/SteamSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -54,6 +55,7 @@ export function LibraryPage() {
   const [sort, setSort] = useState<LibrarySort>('playtime');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [showStats, setShowStats] = useState(false);
+  const [showPicks, setShowPicks] = useState(false);
   const [shown, setShown] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState<SteamOwnedGame | null>(null);
   const [peek, setPeek] = useState<{ game: SteamOwnedGame; rect: DOMRect } | null>(null);
@@ -468,11 +470,21 @@ export function LibraryPage() {
               >
                 {showStats ? '통계 접기' : '통계 보기'}
               </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setShowPicks((v) => !v)}
+                aria-expanded={showPicks}
+              >
+                오늘 뭐 하지?
+              </button>
               <span className="filter-result">
                 게임 {allGames.length.toLocaleString('ko-KR')}개 · 총 {formatTotalHours(totalMinutes)} 플레이
               </span>
             </div>
           )}
+
+          {showPicks && !editing && <TodayPicks games={allGames} logs={logs} onOpen={setSelected} />}
 
           {showStats && !editing && (
             <LibraryStats games={data.games} logs={logs} libraryIds={new Set(allGames.map((g) => g.appId))} />

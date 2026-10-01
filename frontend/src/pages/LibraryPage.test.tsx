@@ -877,3 +877,78 @@ describe('LibraryPage 진열장 공개', () => {
     expect(screen.queryByRole('checkbox', { name: '진열장 공개' })).not.toBeInTheDocument();
   });
 });
+
+describe('LibraryPage 오늘 뭐 하지?', () => {
+  const picksRegion = () => screen.getByRole('region', { name: '오늘 뭐 하지?' });
+  const open = async (user: ReturnType<typeof userEvent.setup>) => {
+    await screen.findByRole('button', { name: '오늘 뭐 하지?' });
+    await user.click(screen.getByRole('button', { name: '오늘 뭐 하지?' }));
+  };
+
+  it('처음에는 접혀 있고, 누르면 아직 안 했거나 해 보다 만 게임을 이유와 함께 골라 준다', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    await screen.findByRole('button', { name: '오늘 뭐 하지?' });
+    expect(screen.queryByRole('region', { name: '오늘 뭐 하지?' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '오늘 뭐 하지?' })).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(screen.getByRole('button', { name: '오늘 뭐 하지?' }));
+    expect(screen.getByRole('button', { name: '오늘 뭐 하지?' })).toHaveAttribute('aria-expanded', 'true');
+
+    // 충분히 해 본 Terraria(10시간)는 빠지고, Portal(90분)·Alpha(10분)·Zero(안 함)가 후보다
+    const names = within(picksRegion()).getAllByRole('button', { name: /,/ }).map(labelName).sort();
+    expect(names).toEqual(['Alpha', 'Portal', 'Zero']);
+    expect(within(picksRegion()).getByText('가지고만 있고 한 번도 안 해 본 게임이에요.')).toBeInTheDocument();
+    expect(within(picksRegion()).getByText('10분만 해 보고 만 게임이에요.')).toBeInTheDocument();
+  });
+
+  it('클리어한 게임은 추천하지 않고, 쌓아 둔 게임은 이유에 나온다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchGameLogs).mockResolvedValue({
+      logs: [
+        { gameId: 3, status: 'cleared', rating: 5, note: '' },
+        { gameId: 4, status: 'backlog', rating: null, note: '' },
+      ],
+    });
+    renderLibrary();
+    await open(user);
+
+    const names = within(picksRegion()).getAllByRole('button', { name: /,/ }).map(labelName).sort();
+    expect(names).toEqual(['Alpha', 'Portal']);
+    expect(within(picksRegion()).getByText('쌓아 둔 게임이에요. 이제 꺼낼 때가 됐어요.')).toBeInTheDocument();
+  });
+
+  it('추천된 게임을 누르면 게임 창이 열린다', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    await open(user);
+    await user.click(within(picksRegion()).getByRole('button', { name: /^Zero,/ }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('Zero');
+  });
+
+  it('다시 뽑기를 누르면 새로 뽑는다', async () => {
+    const user = userEvent.setup();
+    const random = vi.spyOn(Math, 'random');
+    renderLibrary();
+    await open(user);
+    const calls = random.mock.calls.length;
+    await user.click(screen.getByRole('button', { name: '다시 뽑기' }));
+    expect(random.mock.calls.length).toBeGreaterThan(calls);
+  });
+
+  it('추천할 게임이 없으면 이유를 알려 준다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchSteamGames).mockResolvedValue({ private: false, games: [game(1, 'Terraria', 600)] });
+    renderLibrary();
+    await open(user);
+    expect(within(picksRegion()).getByText(/추천할 게임이 없어요/)).toBeInTheDocument();
+  });
+
+  it('배치를 바꾸는 중에는 숨긴다', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    await open(user);
+    await user.click(screen.getByRole('button', { name: '배치 바꾸기' }));
+    expect(screen.queryByRole('region', { name: '오늘 뭐 하지?' })).not.toBeInTheDocument();
+  });
+});
