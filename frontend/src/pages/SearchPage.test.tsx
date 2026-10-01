@@ -28,6 +28,7 @@ beforeEach(() => {
   // 검색은 로그인하지 않아도 쓸 수 있다
   vi.mocked(authApi.fetchMe).mockRejectedValue(new ApiError(401, '로그인이 필요합니다.'));
   vi.mocked(meApi.fetchFavorites).mockResolvedValue({ games: [] });
+  vi.mocked(meApi.fetchCustomGames).mockResolvedValue({ games: [] });
   vi.mocked(gamesApi.findGames).mockResolvedValue({ games: [released, undated] });
 });
 
@@ -113,5 +114,67 @@ describe('SearchPage', () => {
     expect(within(dialog).getByText('출시일 미정')).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: /관심 게임 추가/ })).toBeDisabled();
     expect(within(dialog).getByText(/출시일이 정해지면/)).toBeInTheDocument();
+  });
+
+  describe('내 서재에 추가', () => {
+    const openElden = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.click(await screen.findByRole('button', { name: /Elden Ring/ }));
+      return screen.getByRole('dialog');
+    };
+
+    it('로그인하지 않았으면 버튼을 누를 때 로그인으로 보낸다', async () => {
+      const user = userEvent.setup();
+      renderSearch('/search?q=elden');
+      const dialog = await openElden(user);
+      await user.click(within(dialog).getByRole('button', { name: /내 서재에 추가/ }));
+      expect(screen.getByTestId('location')).toHaveTextContent('/login');
+      expect(meApi.addCustomGame).not.toHaveBeenCalled();
+    });
+
+    it('누르면 이름과 표지를 서재에 저장하고 "추가됨"으로 바뀐다', async () => {
+      const user = userEvent.setup();
+      vi.mocked(authApi.fetchMe).mockResolvedValue({ user: { ...testUser, steamId: '76561198000000001' } });
+      vi.mocked(meApi.addCustomGame).mockResolvedValue(undefined);
+      renderSearch('/search?q=elden');
+      const dialog = await openElden(user);
+      await user.click(await within(dialog).findByRole('button', { name: /내 서재에 추가/ }));
+
+      expect(meApi.addCustomGame).toHaveBeenCalledWith({ id: 1, name: 'Elden Ring', image: null });
+      expect(await within(dialog).findByRole('button', { name: /서재에 추가됨/ })).toBeDisabled();
+      expect(within(dialog).queryByText(/Steam 연동 후/)).not.toBeInTheDocument();
+    });
+
+    it('이미 서재에 있는 게임은 처음부터 "추가됨"이다', async () => {
+      const user = userEvent.setup();
+      vi.mocked(authApi.fetchMe).mockResolvedValue({ user: testUser });
+      vi.mocked(meApi.fetchCustomGames).mockResolvedValue({ games: [{ id: 1, name: 'Elden Ring', image: null }] });
+      renderSearch('/search?q=elden');
+      const dialog = await openElden(user);
+      expect(await within(dialog).findByRole('button', { name: /서재에 추가됨/ })).toBeDisabled();
+    });
+
+    it('Steam을 연동하지 않았으면 서재를 보려면 연동이 필요하다고 알린다', async () => {
+      const user = userEvent.setup();
+      vi.mocked(authApi.fetchMe).mockResolvedValue({ user: testUser });
+      vi.mocked(meApi.addCustomGame).mockResolvedValue(undefined);
+      renderSearch('/search?q=elden');
+      const dialog = await openElden(user);
+      await user.click(await within(dialog).findByRole('button', { name: /내 서재에 추가/ }));
+      expect(await within(dialog).findByText(/Steam 연동 후 볼 수 있어요/)).toBeInTheDocument();
+    });
+
+    it('저장에 실패하면 이유를 알리고 다시 누를 수 있다', async () => {
+      const user = userEvent.setup();
+      vi.mocked(authApi.fetchMe).mockResolvedValue({ user: testUser });
+      vi.mocked(meApi.addCustomGame).mockRejectedValue(
+        new ApiError(400, '직접 추가한 게임은 최대 500개까지 둘 수 있습니다.'),
+      );
+      renderSearch('/search?q=elden');
+      const dialog = await openElden(user);
+      await user.click(await within(dialog).findByRole('button', { name: /내 서재에 추가/ }));
+
+      expect(await within(dialog).findByText(/최대 500개/)).toBeInTheDocument();
+      expect(within(dialog).getByRole('button', { name: /내 서재에 추가/ })).toBeEnabled();
+    });
   });
 });

@@ -2,9 +2,12 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { errorMessage } from '../api/client';
 import { findGames } from '../api/games';
+import * as meApi from '../api/me';
 import { DDay } from '../components/DDay';
 import { GameDetailModal } from '../components/GameDetail';
 import { GameThumb } from '../components/GameThumb';
+import { LibraryAddButton } from '../components/LibraryAddButton';
+import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import type { Game } from '../types';
@@ -25,6 +28,8 @@ function summary(game: Game): string {
 /** /search?q=… — 그 달에 나온 게임이 아니라 RAWG의 모든 게임을 이름으로 찾아 상세를 보고 관심 게임에 담는다 */
 export function SearchPage() {
   useDocumentTitle('게임 검색');
+  const { user } = useAuth();
+  const userId = user?.id;
   const { isFavorite } = useFavorites();
   const [searchParams, setSearchParams] = useSearchParams();
   const q = (searchParams.get('q') ?? '').trim();
@@ -47,6 +52,27 @@ export function SearchPage() {
       .catch((err) => finish({ kind: 'error', message: errorMessage(err) }));
     return () => controller.abort();
   }, [q, requestKey]);
+
+  // 서재에 직접 추가한 게임의 RAWG 번호. 어느 사용자의 것인지 함께 기억해, 로그인한 사용자가 바뀌면 다시 불러온다
+  const [library, setLibrary] = useState<{ userId: number; ids: Set<number> } | null>(null);
+  useEffect(() => {
+    if (userId === undefined) return;
+    let cancelled = false;
+    meApi
+      .fetchCustomGames()
+      // 목록을 못 불러와도 추가는 할 수 있게 둔다. 이미 있는 게임을 다시 추가해도 서버는 한 번만 저장한다
+      .then(({ games }) => !cancelled && setLibrary({ userId, ids: new Set(games.map((g) => g.id)) }))
+      .catch(() => !cancelled && setLibrary({ userId, ids: new Set() }));
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+  const libraryIds = library && library.userId === userId ? library.ids : null;
+
+  const addToLibrary = async (game: Game) => {
+    await meApi.addCustomGame({ id: game.id, name: game.name, image: game.image });
+    setLibrary((cur) => (cur && cur.userId === userId ? { ...cur, ids: new Set(cur.ids).add(game.id) } : cur));
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -119,7 +145,15 @@ export function SearchPage() {
         </>
       )}
 
-      {selected && <GameDetailModal game={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <GameDetailModal
+          game={selected}
+          onClose={() => setSelected(null)}
+          actions={
+            <LibraryAddButton game={selected} added={libraryIds?.has(selected.id) ?? null} onAdd={addToLibrary} />
+          }
+        />
+      )}
     </div>
   );
 }

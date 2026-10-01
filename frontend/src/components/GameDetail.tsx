@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { errorMessage } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -87,7 +87,16 @@ function FavoriteButton({ game }: { game: Game }) {
 }
 
 /** 게임 상세 내용. 캘린더의 사이드 패널과 마이페이지의 모달에서 함께 쓴다. */
-export function GameDetail({ game, hideFavorite = false }: { game: Game; hideFavorite?: boolean }) {
+export function GameDetail({
+  game,
+  hideFavorite = false,
+  actions,
+}: {
+  game: Game;
+  hideFavorite?: boolean;
+  /** 관심 게임 버튼 옆에 더할 버튼 (예: 서재에 추가) */
+  actions?: ReactNode;
+}) {
   return (
     <>
       <GameThumb game={game} className="detail-hero" />
@@ -116,6 +125,7 @@ export function GameDetail({ game, hideFavorite = false }: { game: Game; hideFav
 
         <div className="detail-actions">
           {!hideFavorite && <FavoriteButton game={game} />}
+          {actions}
           {game.url && (
             <a className="detail-link" href={game.url} target="_blank" rel="noreferrer">
               RAWG에서 자세히 보기 ↗
@@ -127,10 +137,10 @@ export function GameDetail({ game, hideFavorite = false }: { game: Game; hideFav
   );
 }
 
-export function GameDetailModal({ game, onClose }: { game: Game; onClose: () => void }) {
+export function GameDetailModal({ game, onClose, actions }: { game: Game; onClose: () => void; actions?: ReactNode }) {
   return (
     <Modal title={game.name} onClose={onClose}>
-      <GameDetail game={game} />
+      <GameDetail game={game} actions={actions} />
     </Modal>
   );
 }
