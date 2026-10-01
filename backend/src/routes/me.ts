@@ -8,9 +8,7 @@ import { addCustomGame, listCustomGames, parseCustomGame, removeCustomGame } fro
 import { deleteGameLog, listGameLogs, parseGameLog, saveGameLog } from '../services/gameLog.ts';
 import { getPersonas, requestStyles } from '../services/gameStyle.ts';
 import { getLibraryOrder, parseLibraryOrder, saveLibraryOrder } from '../services/libraryOrder.ts';
-import { searchGamesKorean } from '../services/koreanSearch.ts';
-import { hasHangul } from '../services/translate.ts';
-import { searchGames } from '../services/rawg.ts';
+import { searchGamesAny } from '../services/koreanSearch.ts';
 import { IS_SAMPLE_MODE } from '../services/releases.ts';
 import { hashPassword, verifyPassword } from '../services/password.ts';
 import { deleteOtherSessions } from '../services/sessions.ts';
@@ -218,7 +216,7 @@ meRouter.get('/library-games/search', gamesLimiter, async (req, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   if (!q || q.length > 100) throw new HttpError(400, '검색어를 1~100자로 입력하세요.');
   if (IS_SAMPLE_MODE) throw new HttpError(503, '샘플 모드에서는 게임을 검색할 수 없습니다.');
-  res.json({ games: hasHangul(q) ? await searchGamesKorean(q) : await searchGames(q) });
+  res.json({ games: await searchGamesAny(q) });
 });
 
 /** PUT /api/me/library-games/:gameId { id, name, image } — 여러 번 호출해도 결과가 같다 */

@@ -87,3 +87,9 @@ describe('그 밖의 게임 API — 샘플 모드', () => {
     }
   });
 });
+
+describe('GET /api/games/find — 샘플 모드', () => {
+  it('RAWG 키가 없으면 검색할 수 없다고 알린다 (503)', async () => {
+    assert.equal((await get('/api/games/find?q=zelda')).status, 503);
+  });
+});

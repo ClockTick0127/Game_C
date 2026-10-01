@@ -281,8 +281,8 @@ export async function searchGamesExact(name: string): Promise<Game[]> {
   return data.results.filter((g) => normalizeTitle(g.name) === target).map(normalize);
 }
 
-/** 이름으로 게임 여러 개를 찾는다 (서재에 직접 추가할 게임을 고르는 용도). 성인 게임은 뺀다 */
-export async function searchGames(query: string): Promise<Game[]> {
-  const data = await rawgGet<RawgListResponse>('/games', { search: query, page_size: '12' });
+/** 이름으로 게임 여러 개를 찾는다 (게임 검색 페이지, 서재에 직접 추가할 게임을 고르는 용도). 성인 게임은 뺀다 */
+export async function searchGames(query: string, pageSize = 12): Promise<Game[]> {
+  const data = await rawgGet<RawgListResponse>('/games', { search: query, page_size: String(pageSize) });
   return data.results.filter((g) => !isAdultGame(g)).map(normalize);
 }

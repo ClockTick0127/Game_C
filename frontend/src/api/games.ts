@@ -11,6 +11,11 @@ export function fetchStoreInfo(gameId: number, signal?: AbortSignal): Promise<St
   return request(`/api/games/${gameId}/store-info`, { signal });
 }
 
+/** 이름으로 게임을 찾아 목록으로 돌려준다 (한글 검색어 가능, 출시일이 정해지지 않은 게임은 released가 빈 문자열). 로그인하지 않아도 쓸 수 있다 */
+export function findGames(q: string, signal?: AbortSignal): Promise<{ games: Game[] }> {
+  return request(`/api/games/find?${new URLSearchParams({ q })}`, { signal });
+}
+
 /** 이름과 출시 연도로 게임 하나를 찾는다. 못 찾으면(404) 예외가 발생한다. */
 export function searchGame(name: string, year: number, signal?: AbortSignal): Promise<Game> {
   return request(`/api/games/search?${new URLSearchParams({ name, year: String(year) })}`, { signal });

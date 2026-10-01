@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { gamesLimiter } from '../middleware/rateLimit.ts';
 import { IS_SAMPLE_MODE, getReleases } from '../services/releases.ts';
+import { searchGamesAny } from '../services/koreanSearch.ts';
 import { searchGameByName } from '../services/rawg.ts';
 import type { Game } from '../types.ts';
 import { createPromiseCache } from '../utils/cache.ts';
@@ -45,6 +46,20 @@ gamesRouter.get('/:id/store-info', async (req, res) => {
     return;
   }
   res.json(await getStoreInfo(id));
+});
+
+/** GET /api/games/find?q=... — 이름으로 찾은 게임 목록 (로그인 불필요, 한글 검색어 지원). 샘플 모드에서는 503 */
+gamesRouter.get('/find', async (req, res) => {
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (!q || q.length > 100) {
+    res.status(400).json({ error: '검색어를 1~100자로 입력하세요.' });
+    return;
+  }
+  if (IS_SAMPLE_MODE) {
+    res.status(503).json({ error: '샘플 모드에서는 게임을 검색할 수 없습니다.' });
+    return;
+  }
+  res.json({ games: await searchGamesAny(q) });
 });
 
 /** GET /api/games/search?name=...&year=... — 이름(과 선택적으로 출시 연도)으로 찾은 게임 하나. 샘플 모드이거나 찾지 못하면 404 */

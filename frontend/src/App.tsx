@@ -11,6 +11,7 @@ import { LibraryPage } from './pages/LibraryPage';
 import { LoginPage } from './pages/LoginPage';
 import { MyPage } from './pages/MyPage';
 import { PopularPage } from './pages/PopularPage';
+import { SearchPage } from './pages/SearchPage';
 import { ShowcasePage } from './pages/ShowcasePage';
 import { SignupPage } from './pages/SignupPage';
 
@@ -28,6 +29,7 @@ export default function App() {
                 <ErrorBoundary>
                   <Routes>
                     <Route path="/" element={<CalendarPage />} />
+                    <Route path="/search" element={<SearchPage />} />
                     <Route path="/popular" element={<PopularPage />} />
                     <Route path="/goty" element={<GotyPage />} />
                     <Route path="/login" element={<LoginPage />} />

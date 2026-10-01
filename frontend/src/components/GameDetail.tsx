@@ -66,18 +66,21 @@ export function FavoriteStar({ game }: { game: Game }) {
 
 function FavoriteButton({ game }: { game: Game }) {
   const { user, active, pending, error, toggle } = useFavoriteToggle(game);
+  // 관심 게임은 출시일로 정렬하고 캘린더에 표시하므로 출시일이 정해진 게임만 담을 수 있다 (이미 담은 게임은 뺄 수 있다)
+  const undated = !game.released && !active;
   return (
     <>
       <button
         type="button"
         className={active ? 'btn fav-btn active' : 'btn fav-btn'}
         onClick={toggle}
-        disabled={pending}
+        disabled={pending || undated}
         aria-pressed={active}
       >
         {active ? '★ 관심 게임' : '☆ 관심 게임 추가'}
       </button>
-      {!user && <span className="muted small">로그인하면 관심 게임을 저장할 수 있어요</span>}
+      {undated && <span className="muted small">출시일이 정해지면 관심 게임으로 담을 수 있어요</span>}
+      {!user && !undated && <span className="muted small">로그인하면 관심 게임을 저장할 수 있어요</span>}
       {error && <p className="form-error">{error}</p>}
     </>
   );
@@ -90,7 +93,7 @@ export function GameDetail({ game, hideFavorite = false }: { game: Game; hideFav
       <GameThumb game={game} className="detail-hero" />
       <div className="detail-body">
         <h2 className="detail-title">{game.name}</h2>
-        <p className="detail-sub">출시일 {formatKoreanDate(game.released)}</p>
+        <p className="detail-sub">출시일 {game.released ? formatKoreanDate(game.released) : '미정'}</p>
 
         <dl className="detail-meta">
           <dt>플랫폼</dt>

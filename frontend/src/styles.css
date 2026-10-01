@@ -3589,3 +3589,27 @@ a.metascore:hover {
   height: 18px;
   accent-color: var(--accent);
 }
+
+/* ---------- 게임 검색 ---------- */
+.search-page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.search-count {
+  margin: 4px 0 10px;
+  font-size: 14px;
+}
+
+.search-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-results .list-item {
+  height: 100%;
+}

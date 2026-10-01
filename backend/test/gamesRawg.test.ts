@@ -828,3 +828,46 @@ describe('GET /api/games/:id/store-info', () => {
     assert.equal(f.calls.length, after);
   });
 });
+
+describe('GET /api/games/find — 전체 게임 검색', () => {
+  it('로그인 없이 쓸 수 있고, 성인 게임을 빼고 출시일이 없는 게임은 빈 문자열로 내려준다', async () => {
+    const f = withExternal((url) =>
+      url.pathname === '/api/games'
+        ? json({
+            results: [
+              rawgGame({ id: 901, name: 'Find Me', released: '2020-05-01' }),
+              rawgGame({ id: 902, name: 'Find Me 2', released: null }),
+              rawgGame({ id: 903, name: '성인 게임', released: '2021-01-01', tags: [{ slug: 'hentai' }] }),
+            ],
+          })
+        : undefined,
+    );
+    const res = await get('/api/games/find?q=Find%20Me');
+    assert.equal(res.status, 200);
+    const games = res.json.games as { id: number; released: string }[];
+    assert.deepEqual(
+      games.map((g) => [g.id, g.released]),
+      [
+        [901, '2020-05-01'],
+        [902, ''],
+      ],
+    );
+    assert.equal(f.callsTo(RAWG)[0]!.searchParams.get('search'), 'Find Me');
+    assert.equal(f.callsTo(RAWG)[0]!.searchParams.get('page_size'), '20');
+  });
+
+  it('같은 검색어는 캐시해서 RAWG를 다시 부르지 않는다', async () => {
+    const f = withExternal(() =>
+      json({ results: [rawgGame({ id: 911, name: 'Cached Search', released: '2020-05-01' })] }),
+    );
+    await get('/api/games/find?q=Cached%20Search');
+    await get('/api/games/find?q=cached%20search');
+    assert.equal(f.callsTo(RAWG).length, 1);
+  });
+
+  it('검색어가 없거나 100자를 넘으면 400', async () => {
+    assert.equal((await get('/api/games/find')).status, 400);
+    assert.equal((await get('/api/games/find?q=%20%20')).status, 400);
+    assert.equal((await get(`/api/games/find?q=${'a'.repeat(101)}`)).status, 400);
+  });
+});

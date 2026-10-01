@@ -27,6 +27,9 @@ export function NavBar() {
         <NavLink to="/" end className="nav-link">
           캘린더
         </NavLink>
+        <NavLink to="/search" className="nav-link">
+          게임 검색
+        </NavLink>
         <NavLink to="/popular" className="nav-link">
           인기 게임
         </NavLink>

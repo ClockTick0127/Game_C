@@ -1,7 +1,7 @@
 import type { Game } from '../types.ts';
 import { createPromiseCache } from '../utils/cache.ts';
 import { searchGameByName, searchGames } from './rawg.ts';
-import { translateCached } from './translate.ts';
+import { hasHangul, translateCached } from './translate.ts';
 
 const TIMEOUT_MS = 8_000;
 /** 한글 검색어 하나로 RAWG를 부르는 횟수를 제한한다 (RAWG 호출 한도를 아끼기 위해) */
@@ -58,6 +58,20 @@ async function viaSteam(query: string): Promise<Game[]> {
 async function viaTranslation(query: string): Promise<Game[]> {
   const english = await translateCached(query, 'ko', 'en');
   return english ? searchGames(english) : [];
+}
+
+/** 검색어 하나로 찾는 결과 수 */
+const SEARCH_LIMIT = 20;
+
+const cachedSearchAny = createPromiseCache<string, Game[]>({ ttlMs: 10 * 60 * 1000, maxEntries: 300 });
+
+/**
+ * 어떤 언어의 검색어든 게임을 찾는다 (한글이면 searchGamesKorean, 아니면 RAWG 검색).
+ * 로그인 없이도 부를 수 있는 검색 페이지가 쓰므로, 같은 검색어는 10분 동안 RAWG를 다시 부르지 않는다.
+ */
+export function searchGamesAny(query: string): Promise<Game[]> {
+  const q = query.trim();
+  return cachedSearchAny(q.toLowerCase(), () => (hasHangul(q) ? searchGamesKorean(q) : searchGames(q, SEARCH_LIMIT)));
 }
 
 /**
