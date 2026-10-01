@@ -182,6 +182,16 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 13,
+    description: '진열장 공개 프로필 (/u/닉네임)',
+    // 닉네임은 가입할 때 중복을 막지 않아서 UNIQUE를 걸 수 없다(이미 겹치는 계정이 있을 수 있다).
+    // 대신 공개한 계정끼리만 닉네임(대소문자 무시)이 겹치지 않게 부분 유니크 인덱스로 막는다.
+    sql: `
+      ALTER TABLE users ADD COLUMN profile_public INTEGER NOT NULL DEFAULT 0;
+      CREATE UNIQUE INDEX idx_users_public_nickname ON users(nickname COLLATE NOCASE) WHERE profile_public = 1;
+    `,
+  },
 ];
 
 function currentVersion(db: DatabaseSync): number {

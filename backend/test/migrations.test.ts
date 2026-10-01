@@ -39,6 +39,7 @@ describe('DB 마이그레이션', () => {
       'idx_sessions_expires_at',
       'idx_sessions_user_id',
       'idx_users_calendar_token',
+      'idx_users_public_nickname',
       'idx_users_steam_id',
     ]);
   });
@@ -83,7 +84,7 @@ describe('DB 마이그레이션', () => {
       nickname: string;
     };
     assert.equal(user.nickname, '기존회원');
-    assert.equal(indexes(db).length, 5);
+    assert.equal(indexes(db).length, 6);
   });
 
   it('중간 단계가 실패하면 그 단계만 되돌리고 이전 버전에 머문다', () => {

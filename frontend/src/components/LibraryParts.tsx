@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { GameLog, SteamOwnedGame } from '../types';
+import { useFitTitle } from '../hooks/useFitTitle';
 import { useSpinePalette } from '../hooks/useSpinePalette';
 import { coverUrls, gameLabel, STATUS_ICONS } from '../utils/library';
 
@@ -85,6 +86,19 @@ interface SpineProps extends PartProps {
   onPeek: (peek: { game: SteamOwnedGame; rect: DOMRect } | null) => void;
 }
 
+/** 책등에 세워 쓰는 제목의 최대 글자 수. 이보다 길면 줄이고 "…"를 붙인다 (전체 이름은 말풍선·접근성 이름에 있다) */
+const MAX_SPINE_TITLE = 16;
+
+/** 책등 제목: 너무 길면 줄여서 "…"를 붙인다 */
+export function spineTitle(name: string): string {
+  const chars = [...name.trim()];
+  if (chars.length <= MAX_SPINE_TITLE) return chars.join('');
+  return `${chars
+    .slice(0, MAX_SPINE_TITLE - 1)
+    .join('')
+    .trimEnd()}…`;
+}
+
 /**
  * 서재에 꽂힌 게임팩 한 개. 등이 보이도록 세워져 있고, 위에는 게임 아이콘, 그 아래에 제목이 있다.
  * 바탕색과 글자색은 게임의 대표색으로, 제목 폰트는 게임의 분위기(장르·태그)에 맞춰 정한다.
@@ -92,6 +106,9 @@ interface SpineProps extends PartProps {
 export function BookSpine({ game, log, editing, held, onPress, onFlip, onKeyDown, onPeek }: SpineProps) {
   const [iconFailed, setIconFailed] = useState(false);
   const colors = useSpinePalette(game.appId, paletteImage(game));
+  const title = spineTitle(game.name);
+  const persona = game.persona ?? 'default';
+  const titleRef = useFitTitle<HTMLSpanElement>(title, persona);
   const style = {
     '--spine-top': colors.top,
     '--spine-bottom': colors.bottom,
@@ -122,8 +139,8 @@ export function BookSpine({ game, log, editing, held, onPress, onFlip, onKeyDown
           <img src={game.iconUrl} alt="" loading="lazy" draggable={false} onError={() => setIconFailed(true)} />
         )}
       </span>
-      <span className={`spine-title font-${game.persona ?? 'default'}`} aria-hidden="true">
-        {game.name}
+      <span ref={titleRef} className={`spine-title font-${persona}`} aria-hidden="true">
+        {title}
       </span>
       <span className="spine-foot" aria-hidden="true" />
     </button>

@@ -12,6 +12,8 @@ export interface User {
   /** 선호 플랫폼·장르. 캘린더를 열 때 기본 필터로 적용된다. 정하지 않았으면 null */
   preferredPlatform: string | null;
   preferredGenre: string | null;
+  /** true면 누구나 /u/닉네임 에서 내 진열장을 볼 수 있다 */
+  profilePublic: boolean;
 }
 
 export interface UserRow {
@@ -23,6 +25,7 @@ export interface UserRow {
   steam_id: string | null;
   pref_platform: string | null;
   pref_genre: string | null;
+  profile_public: number;
 }
 
 export function toUser(row: UserRow): User {
@@ -34,6 +37,7 @@ export function toUser(row: UserRow): User {
     steamId: row.steam_id,
     preferredPlatform: row.pref_platform,
     preferredGenre: row.pref_genre,
+    profilePublic: row.profile_public === 1,
   };
 }
 
@@ -44,6 +48,10 @@ const selectBySteamId = db.prepare('SELECT * FROM users WHERE steam_id = ?');
 const updateSteamIdStmt = db.prepare('UPDATE users SET steam_id = ? WHERE id = ?');
 const updateNicknameStmt = db.prepare('UPDATE users SET nickname = ? WHERE id = ?');
 const updatePreferencesStmt = db.prepare('UPDATE users SET pref_platform = ?, pref_genre = ? WHERE id = ?');
+const updateProfilePublicStmt = db.prepare('UPDATE users SET profile_public = ? WHERE id = ?');
+const selectPublicByNickname = db.prepare(
+  'SELECT * FROM users WHERE nickname = ? COLLATE NOCASE AND profile_public = 1',
+);
 const updatePasswordStmt = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
 const deleteUserStmt = db.prepare('DELETE FROM users WHERE id = ?');
 
@@ -84,9 +92,40 @@ export function createUser(email: string, nickname: string, passwordHash: string
   }
 }
 
+const isUniqueViolation = (err: unknown) => err instanceof Error && err.message.includes('UNIQUE constraint failed');
+
+/** 공개 중인 계정이 다른 공개 계정과 같은 닉네임으로 바꾸려 하면 409 (주소가 겹치기 때문이다) */
 export function updateNickname(id: number, nickname: string): User {
-  updateNicknameStmt.run(nickname, id);
+  try {
+    updateNicknameStmt.run(nickname, id);
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new HttpError(409, '공개된 진열장 중에 같은 닉네임을 쓰는 사람이 있어요. 다른 닉네임을 써 주세요.');
+    }
+    throw err;
+  }
   return toUser(findUserRowById(id)!);
+}
+
+/** 진열장을 공개하거나 숨긴다. 다른 공개 계정이 같은 닉네임을 쓰고 있으면 공개할 수 없다(409) */
+export function setProfilePublic(id: number, isPublic: boolean): User {
+  try {
+    updateProfilePublicStmt.run(isPublic ? 1 : 0, id);
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new HttpError(
+        409,
+        '이미 같은 닉네임으로 진열장을 공개한 사람이 있어요. 닉네임을 바꾼 뒤 다시 공개해 주세요.',
+      );
+    }
+    throw err;
+  }
+  return toUser(findUserRowById(id)!);
+}
+
+/** /u/닉네임 주소의 주인. 공개하지 않은 계정은 없는 것과 같다 */
+export function findPublicUserRowByNickname(nickname: string): UserRow | undefined {
+  return selectPublicByNickname.get(nickname) as UserRow | undefined;
 }
 
 export function updatePreferences(id: number, platform: string | null, genre: string | null): User {

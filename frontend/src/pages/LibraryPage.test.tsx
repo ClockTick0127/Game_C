@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as authApi from '../api/auth';
+import { ApiError } from '../api/client';
 import * as meApi from '../api/me';
 import { testUser } from '../test/fixtures';
 import { renderApp } from '../test/render';
@@ -782,5 +783,97 @@ describe('LibraryPage — 플레이 상태·별점·메모', () => {
     await screen.findByRole('button', { name: /^Terraria,/ });
     expect(libraryNames()).toHaveLength(4);
     expect(document.querySelector('.status-badge')).toBeNull();
+  });
+});
+
+describe('LibraryPage — 통계', () => {
+  it('통계는 처음에 접혀 있고, 버튼으로 펼치고 접는다. 펼쳐도 업적은 부르지 않는다', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    await screen.findByRole('button', { name: /^Terraria,/ });
+    expect(screen.queryByRole('region', { name: '서재 통계' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '통계 보기' }));
+    const stats = screen.getByRole('region', { name: '서재 통계' });
+    expect(within(stats).getByText('4개')).toBeInTheDocument(); // 보유 게임
+    expect(within(stats).getByText('11.7시간')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '통계 접기' })).toHaveAttribute('aria-expanded', 'true');
+    expect(meApi.fetchAchievementSummary).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: '통계 접기' }));
+    expect(screen.queryByRole('region', { name: '서재 통계' })).not.toBeInTheDocument();
+  });
+
+  it('남긴 기록이 통계의 "내 기록"에 반영된다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchGameLogs).mockResolvedValue({
+      logs: [{ gameId: 1, status: 'cleared', rating: 4, note: '' }],
+    });
+    renderLibrary();
+    await screen.findByRole('button', { name: /^Terraria,/ });
+    await user.click(screen.getByRole('button', { name: '통계 보기' }));
+    expect(screen.getByText('평균 별점 ★4 (1개 게임)')).toBeInTheDocument();
+  });
+
+  it('배치를 바꾸는 중에는 통계를 숨긴다', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    await screen.findByRole('button', { name: '통계 보기' });
+    await user.click(screen.getByRole('button', { name: '통계 보기' }));
+    await user.click(screen.getByRole('button', { name: '배치 바꾸기' }));
+    expect(screen.queryByRole('region', { name: '서재 통계' })).not.toBeInTheDocument();
+  });
+});
+
+describe('LibraryPage 진열장 공개', () => {
+  it('처음에는 공개가 꺼져 있고 주소가 보이지 않는다', async () => {
+    renderLibrary();
+    const toggle = await screen.findByRole('checkbox', { name: '진열장 공개' });
+    expect(toggle).not.toBeChecked();
+    expect(screen.queryByLabelText('진열장 공개 주소')).not.toBeInTheDocument();
+  });
+
+  it('켜면 서버에 저장하고 공유할 주소를 보여 준다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.setProfilePublic).mockResolvedValue({ user: { ...linkedUser, profilePublic: true } });
+    renderLibrary();
+    await user.click(await screen.findByRole('checkbox', { name: '진열장 공개' }));
+
+    expect(meApi.setProfilePublic).toHaveBeenCalledWith(true);
+    expect(await screen.findByRole('checkbox', { name: '진열장 공개' })).toBeChecked();
+    expect(screen.getByLabelText('진열장 공개 주소')).toHaveValue(
+      `${window.location.origin}/u/${encodeURIComponent(linkedUser.nickname)}`,
+    );
+  });
+
+  it('공개 중이면 끌 수 있다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(authApi.fetchMe).mockResolvedValue({ user: { ...linkedUser, profilePublic: true } });
+    vi.mocked(meApi.setProfilePublic).mockResolvedValue({ user: { ...linkedUser, profilePublic: false } });
+    renderLibrary();
+    await user.click(await screen.findByRole('checkbox', { name: '진열장 공개' }));
+
+    expect(meApi.setProfilePublic).toHaveBeenCalledWith(false);
+    await waitFor(() => expect(screen.queryByLabelText('진열장 공개 주소')).not.toBeInTheDocument());
+  });
+
+  it('닉네임이 겹쳐 공개하지 못하면 이유를 알리고 꺼진 채로 둔다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.setProfilePublic).mockRejectedValue(
+      new ApiError(409, '이미 같은 닉네임으로 공개한 사람이 있어요.'),
+    );
+    renderLibrary();
+    await user.click(await screen.findByRole('checkbox', { name: '진열장 공개' }));
+
+    expect(await screen.findByText('이미 같은 닉네임으로 공개한 사람이 있어요.')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: '진열장 공개' })).not.toBeChecked();
+  });
+
+  it('배치를 바꾸는 중에는 공개 설정을 숨긴다', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    await screen.findByRole('checkbox', { name: '진열장 공개' });
+    await user.click(screen.getByRole('button', { name: '배치 바꾸기' }));
+    expect(screen.queryByRole('checkbox', { name: '진열장 공개' })).not.toBeInTheDocument();
   });
 });

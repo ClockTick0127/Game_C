@@ -2943,12 +2943,19 @@ a.metascore:hover {
   min-height: 0;
   /* 바깥 테두리가 잘리지 않도록 사방에 여유를 둔다 */
   padding: 3px 4px 8px;
+  max-width: 100%;
   overflow: hidden;
   /* 글자 안은 검은색, 바깥 테두리는 게임 대표색(밝게)이라 어두운 바탕 위에서도 또렷하다 */
   color: #000;
-  font-size: 16px;
+  /*
+   * 글자를 세워 한 줄로 쌓는다 (T / e / k / k / e / n). 분위기별 글꼴 크기(--title-size)는 짧은 제목일 때의 크기이고,
+   * 책등 높이를 넘는 제목은 useFitTitle이 글자 크기를 줄여 맞춘다.
+   */
+  font-size: var(--title-size, 20px);
   font-weight: 700;
-  text-overflow: ellipsis;
+  line-height: 1;
+  text-align: start;
+  text-orientation: upright;
   text-shadow:
     -1px -1px 0 var(--spine-text, #fff),
     1px -1px 0 var(--spine-text, #fff),
@@ -2959,6 +2966,8 @@ a.metascore:hover {
     -1.5px 0 0 var(--spine-text, #fff),
     1.5px 0 0 var(--spine-text, #fff);
   white-space: nowrap;
+  /* 띄어쓰기도 한 글자 높이를 다 차지하면 낭비라서 줄인다 */
+  word-spacing: -0.55em;
   writing-mode: vertical-rl;
 }
 
@@ -2968,60 +2977,58 @@ a.metascore:hover {
  */
 .font-default {
   font-family: 'Noto Sans KR', sans-serif;
-  font-size: 24px;
+  --title-size: 22px;
   font-weight: 900;
 }
 
 .font-action {
   font-family: Anton, 'Black Han Sans', 'Noto Sans KR', sans-serif;
-  font-size: 28px;
+  --title-size: 24px;
   font-weight: 400;
-  letter-spacing: 0.03em;
 }
 
 .font-fantasy {
   font-family: Cinzel, 'Nanum Myeongjo', serif;
-  font-size: 23px;
+  --title-size: 20px;
   font-weight: 900;
 }
 
 .font-scifi {
   font-family: Orbitron, 'Gothic A1', 'Noto Sans KR', sans-serif;
-  font-size: 19px;
+  --title-size: 17px;
   font-weight: 900;
-  letter-spacing: 0.05em;
 }
 
 /* 획이 가는 글꼴(굵기가 하나뿐)은 검은 글자가 가늘어 보여서 같은 색 테두리로 살짝 두껍게 한다 */
 .font-horror {
   font-family: 'Special Elite', 'Song Myung', serif;
-  font-size: 25px;
+  --title-size: 22px;
   font-weight: 400;
   -webkit-text-stroke: 0.5px currentcolor;
 }
 
 .font-retro {
   font-family: DotGothic16, Gugi, sans-serif;
-  font-size: 25px;
+  --title-size: 22px;
   font-weight: 400;
   -webkit-text-stroke: 0.7px currentcolor;
 }
 
 .font-cute {
   font-family: Fredoka, Jua, sans-serif;
-  font-size: 26px;
+  --title-size: 22px;
   font-weight: 700;
 }
 
 .font-sports {
   font-family: 'Russo One', 'Black Han Sans', sans-serif;
-  font-size: 24px;
+  --title-size: 21px;
   font-weight: 400;
 }
 
 .font-strategy {
   font-family: 'Roboto Slab', 'Gowun Batang', serif;
-  font-size: 23px;
+  --title-size: 20px;
   font-weight: 900;
 }
 
@@ -3079,10 +3086,6 @@ a.metascore:hover {
   .stacks {
     --spine-h: 250px;
     grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
-  }
-
-  .spine-title {
-    font-size: 14px;
   }
 }
 
@@ -3404,4 +3407,185 @@ a.metascore:hover {
   width: 26px;
   height: 26px;
   font-size: 14px;
+}
+
+/* 서재 통계 */
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stat-cards li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.stat-cards strong {
+  font-size: 20px;
+}
+
+.stat-cards span {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.stat-box {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.stat-box h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.stat-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+
+.stat-bars,
+.stat-top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stat-bars li {
+  display: grid;
+  grid-template-columns: minmax(70px, 120px) 1fr 118px; /* 글자 칸 폭을 고정해야 모든 행의 막대가 같은 기준으로 그려진다 */
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.stat-bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-bar-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.stat-bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.stat-bar-text {
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.stat-top li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  counter-increment: top;
+}
+
+.stat-top {
+  counter-reset: top;
+}
+
+.stat-top-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stat-top-name::before {
+  margin-right: 8px;
+  color: var(--text-dim);
+  content: counter(top) '.';
+}
+
+.stat-achievement-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.stat-achievement-total {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.stat-achievement-total strong {
+  color: var(--success);
+  font-size: 22px;
+}
+
+/* ---------- 진열장 공개 ---------- */
+.showcase-share {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.showcase-share .muted {
+  margin: 6px 0 10px;
+  font-size: 13px;
+}
+
+.showcase-share .muted:last-child {
+  margin-bottom: 0;
+}
+
+.showcase-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.showcase-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
 }

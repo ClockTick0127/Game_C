@@ -4,6 +4,12 @@ import { HttpError } from '../utils/http.ts';
 /** 한 계정이 저장할 수 있는 게임 수. Steam 서재는 보통 수백~수천 개다 */
 export const MAX_LIBRARY_ORDER = 20_000;
 
+/**
+ * 직접 추가한 게임의 서재 번호는 RAWG 번호에 이 값을 더한 것이다. Steam 앱 번호와 겹치지 않아서
+ * 배치 목록과 게임 기록이 두 종류를 한 줄로 저장할 수 있다 (frontend/src/utils/library.ts와 같다).
+ */
+export const CUSTOM_ID_BASE = 1_000_000_000;
+
 const select = db.prepare('SELECT order_json FROM library_orders WHERE user_id = ?');
 const upsert = db.prepare(`
   INSERT INTO library_orders (user_id, order_json, updated_at) VALUES (?, ?, ?)

@@ -3,8 +3,10 @@ import { Link } from 'react-router';
 import { errorMessage } from '../api/client';
 import * as meApi from '../api/me';
 import { GameLogEditor } from '../components/GameLogEditor';
+import { LibraryStats } from '../components/LibraryStats';
 import { BookSpine, Cover, GameCase, RecentCard } from '../components/LibraryParts';
 import { Modal } from '../components/Modal';
+import { ShowcaseShare } from '../components/ShowcaseShare';
 import { SteamAchievementList } from '../components/SteamSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -50,6 +52,7 @@ export function LibraryPage() {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<LibrarySort>('playtime');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [showStats, setShowStats] = useState(false);
   const [shown, setShown] = useState(PAGE_SIZE);
   const [selected, setSelected] = useState<SteamOwnedGame | null>(null);
   const [peek, setPeek] = useState<{ game: SteamOwnedGame; rect: DOMRect } | null>(null);
@@ -456,10 +459,22 @@ export function LibraryPage() {
               <button type="button" className="btn btn-sm" onClick={() => setAdding(true)}>
                 게임 추가
               </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => setShowStats((v) => !v)}
+                aria-expanded={showStats}
+              >
+                {showStats ? '통계 접기' : '통계 보기'}
+              </button>
               <span className="filter-result">
                 게임 {allGames.length.toLocaleString('ko-KR')}개 · 총 {formatTotalHours(totalMinutes)} 플레이
               </span>
             </div>
+          )}
+
+          {showStats && !editing && (
+            <LibraryStats games={data.games} logs={logs} libraryIds={new Set(allGames.map((g) => g.appId))} />
           )}
 
           {recent.length > 0 && !editing && (
@@ -480,6 +495,7 @@ export function LibraryPage() {
           <h2 className="shelf-title">
             내 진열장 <span className="count">{shelfGames.length}</span>
           </h2>
+          {user && !editing && <ShowcaseShare user={user} />}
           {shelfGames.length === 0 && !editing ? (
             <p className="shelf-empty">
               진열장이 비어 있어요. <strong>배치 바꾸기</strong>를 눌러 좋아하는 게임을 꽂아 보세요.

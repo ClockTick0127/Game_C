@@ -24,6 +24,7 @@ export const testUser: User = {
   steamId: null,
   preferredPlatform: null,
   preferredGenre: null,
+  profilePublic: false,
 };
 
 /** 밖에서 직접 성공·실패시킬 수 있는 Promise (요청 순서와 타이밍을 제어하는 테스트용) */

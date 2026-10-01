@@ -1,5 +1,5 @@
 import { formatPlaytime } from './steam';
-import type { CustomGame, GameLog, GameStatus, SteamOwnedGame } from '../types';
+import type { CustomGame, GameLog, GameStatus, ShowcaseGame, SteamOwnedGame } from '../types';
 
 export type LibrarySort = 'playtime' | 'recent' | 'name';
 
@@ -41,6 +41,26 @@ export function customToOwned(game: CustomGame): SteamOwnedGame {
     custom: true,
     coverUrl: cover,
     steamAppId: game.steamAppId ?? null,
+  };
+}
+
+/** 공개 진열장의 게임을 상자(GameCase)가 그릴 수 있는 모양으로 바꾼다. 같이 올 기록은 메모 없이 상태·별점뿐이다 */
+export function showcaseToOwned(game: ShowcaseGame): { game: SteamOwnedGame; log: GameLog | undefined } {
+  const owned: SteamOwnedGame = game.custom
+    ? customToOwned({ id: toRawgId(game.appId), name: game.name, image: game.image, steamAppId: game.steamAppId })
+    : {
+        appId: game.appId,
+        name: game.name,
+        playtimeMinutes: game.playtimeMinutes,
+        lastPlayedAt: null,
+        image: `https://cdn.akamai.steamstatic.com/steam/apps/${game.appId}/header.jpg`,
+        iconUrl: null,
+        persona: null,
+      };
+  const hasLog = game.status !== null || game.rating !== null;
+  return {
+    game: owned,
+    log: hasLog ? { gameId: game.appId, status: game.status, rating: game.rating, note: '' } : undefined,
   };
 }
 

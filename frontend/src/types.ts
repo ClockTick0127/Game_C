@@ -24,6 +24,28 @@ export interface User {
   /** 선호 플랫폼·장르. 캘린더를 열 때 기본 필터로 적용된다. 정하지 않았으면 null */
   preferredPlatform: string | null;
   preferredGenre: string | null;
+  /** true면 누구나 /u/닉네임 에서 내 진열장을 볼 수 있다 */
+  profilePublic: boolean;
+}
+
+/** 공개 진열장에 전시된 게임 한 개. 메모 같은 개인 정보는 오지 않는다 (backend/src/services/showcase.ts와 같다) */
+export interface ShowcaseGame {
+  /** 서재 번호: Steam 앱 번호, 직접 추가한 게임은 RAWG 번호 + 10억 */
+  appId: number;
+  name: string;
+  playtimeMinutes: number;
+  custom: boolean;
+  image: string | null;
+  steamAppId: number | null;
+  status: GameStatus | null;
+  rating: number | null;
+}
+
+/** GET /api/profiles/:nickname/showcase 응답 */
+export interface Showcase {
+  nickname: string;
+  /** 진열장에 꽂은 순서대로 */
+  games: ShowcaseGame[];
 }
 
 /** 마이페이지의 Steam 연동 상태 */
@@ -133,6 +155,28 @@ export interface SteamAchievements {
   supported: boolean;
   private: boolean;
   achievements: SteamAchievement[];
+}
+
+export interface GameAchievementProgress {
+  appId: number;
+  name: string;
+  /** 게임의 전체 업적 수 */
+  total: number;
+  achieved: number;
+}
+
+/** GET /api/me/steam/achievement-summary 응답. backend/src/services/achievementSummary.ts와 동일하게 유지할 것 */
+export interface AchievementSummary {
+  /** true면 프로필의 "게임 세부 정보"가 비공개라 게임 목록을 볼 수 없다 */
+  private: boolean;
+  /** 업적이 있는 게임의 달성 현황 (플레이 시간이 긴 순) */
+  games: GameAchievementProgress[];
+  /** 업적을 확인해 본 게임 수 (업적이 없는 게임 포함) */
+  checked: number;
+  /** 업적 공개 범위가 비공개라 못 본 게임 수 */
+  hidden: number;
+  /** 조회에 실패한 게임 수. 0보다 크면 일부가 빠진 결과다 */
+  failed: number;
 }
 
 export interface StoreLink {

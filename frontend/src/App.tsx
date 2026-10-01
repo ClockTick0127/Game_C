@@ -11,6 +11,7 @@ import { LibraryPage } from './pages/LibraryPage';
 import { LoginPage } from './pages/LoginPage';
 import { MyPage } from './pages/MyPage';
 import { PopularPage } from './pages/PopularPage';
+import { ShowcasePage } from './pages/ShowcasePage';
 import { SignupPage } from './pages/SignupPage';
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
                     <Route path="/goty" element={<GotyPage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/signup" element={<SignupPage />} />
+                    <Route path="/u/:nickname" element={<ShowcasePage />} />
                     <Route
                       path="/library"
                       element={

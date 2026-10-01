@@ -8,8 +8,10 @@ import {
   logSummary,
   placeAt,
   removeFrom,
+  showcaseToOwned,
   spineHue,
   STATUS_FILTER_LABELS,
+  toLibraryId,
 } from './library';
 
 const g = (appId: number, name: string, playtimeMinutes: number, lastPlayedAt: string | null): SteamOwnedGame => ({
@@ -142,5 +144,35 @@ describe('플레이 상태·별점 기록', () => {
 
   it('필터 목록은 전체 → 네 가지 상태 → 상태 없음 순서다', () => {
     expect(Object.keys(STATUS_FILTER_LABELS)).toEqual(['all', 'playing', 'cleared', 'backlog', 'dropped', 'none']);
+  });
+});
+
+describe('showcaseToOwned', () => {
+  const base = { playtimeMinutes: 0, image: null, steamAppId: null, status: null, rating: null };
+
+  it('Steam 게임은 가로 헤더 이미지와 플레이 시간을 갖고, 기록이 없으면 log는 없다', () => {
+    const { game, log } = showcaseToOwned({ ...base, appId: 20, name: 'Long', playtimeMinutes: 600, custom: false });
+    expect(game).toMatchObject({ appId: 20, name: 'Long', playtimeMinutes: 600 });
+    expect(game.custom).toBeUndefined();
+    expect(game.image).toBe('https://cdn.akamai.steamstatic.com/steam/apps/20/header.jpg');
+    expect(log).toBeUndefined();
+  });
+
+  it('상태나 별점이 있으면 메모 없는 기록을 만든다', () => {
+    const { log } = showcaseToOwned({ ...base, appId: 20, name: 'Long', custom: false, status: 'cleared', rating: 5 });
+    expect(log).toEqual({ gameId: 20, status: 'cleared', rating: 5, note: '' });
+  });
+
+  it('직접 추가한 게임은 서재와 같은 모양(Steam 표지 우선)으로 바꾼다', () => {
+    const { game } = showcaseToOwned({
+      ...base,
+      appId: toLibraryId(3498),
+      name: 'GTA V',
+      custom: true,
+      image: 'https://media.rawg.io/a.jpg',
+      steamAppId: 271590,
+    });
+    expect(game).toMatchObject({ appId: toLibraryId(3498), custom: true, steamAppId: 271590 });
+    expect(game.coverUrl).toContain('/271590/library_600x900.jpg');
   });
 });

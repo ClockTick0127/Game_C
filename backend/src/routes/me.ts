@@ -2,6 +2,7 @@ import express, { Router, type Request } from 'express';
 import { clearSessionCookie, currentUser, requireAuth } from '../middleware/auth.ts';
 import { getOrCreateCalendarToken, resetCalendarToken } from '../services/calendarFeed.ts';
 import { gamesLimiter, sensitiveLimiter, steamDataLimiter } from '../middleware/rateLimit.ts';
+import { summarizeAchievements } from '../services/achievementSummary.ts';
 import { addFavorite, listFavorites, removeFavorite } from '../services/favorites.ts';
 import { addCustomGame, listCustomGames, parseCustomGame, removeCustomGame } from '../services/customLibrary.ts';
 import { deleteGameLog, listGameLogs, parseGameLog, saveGameLog } from '../services/gameLog.ts';
@@ -18,6 +19,7 @@ import { favoriteAppIds, fetchWishlist, importWishlistGames, parseAppIds } from 
 import {
   deleteUser,
   findUserRowById,
+  setProfilePublic,
   setSteamId,
   updateNickname,
   updatePasswordHash,
@@ -55,6 +57,12 @@ meRouter.put('/preferences', (req, res) => {
   const platform = validatePreference(req.body?.platform, '플랫폼');
   const genre = validatePreference(req.body?.genre, '장르');
   res.json({ user: updatePreferences(currentUser(req).id, platform, genre) });
+});
+
+/** PUT /api/me/profile-visibility { public: boolean } — 진열장 공개 여부. 공개하면 /u/닉네임 에서 누구나 볼 수 있다 */
+meRouter.put('/profile-visibility', (req, res) => {
+  if (typeof req.body?.public !== 'boolean') throw new HttpError(400, '공개 여부가 올바르지 않습니다.');
+  res.json({ user: setProfilePublic(currentUser(req).id, req.body.public) });
 });
 
 /** PUT /api/me/password { currentPassword, newPassword } — 다른 기기의 로그인은 해제된다 */
@@ -146,6 +154,11 @@ meRouter.get('/steam/games', steamDataLimiter, async (req, res) => {
     games: owned.games.map((g) => ({ ...g, persona: personas.get(g.appId) ?? null })),
     stylesPending: ids.length - personas.size,
   });
+});
+
+/** GET /api/me/steam/achievement-summary — 플레이 시간 상위 게임들의 업적 달성 현황 (게임마다 Steam을 불러 비싸므로 요청할 때만 계산한다) */
+meRouter.get('/steam/achievement-summary', steamDataLimiter, async (req, res) => {
+  res.json(await summarizeAchievements(linkedSteamId(req)));
 });
 
 /** GET /api/me/steam/games/:appId/achievements — 게임 하나의 업적 달성 현황 */

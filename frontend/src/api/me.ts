@@ -1,4 +1,5 @@
 import type {
+  AchievementSummary,
   CustomGame,
   Game,
   GameLog,
@@ -19,6 +20,11 @@ export function updateNickname(nickname: string): Promise<{ user: User }> {
 /** 선호 플랫폼·장르 저장 (null이면 정하지 않음) */
 export function updatePreferences(platform: string | null, genre: string | null): Promise<{ user: User }> {
   return request('/api/me/preferences', { method: 'PUT', body: { platform, genre } });
+}
+
+/** 진열장 공개 여부. 공개하면 /u/닉네임 에서 누구나 볼 수 있다 */
+export function setProfilePublic(isPublic: boolean): Promise<{ user: User }> {
+  return request('/api/me/profile-visibility', { method: 'PUT', body: { public: isPublic } });
 }
 
 export function changePassword(currentPassword: string, newPassword: string): Promise<void> {
@@ -64,6 +70,11 @@ export function fetchSteamGames(): Promise<SteamOwnedGames> {
 
 export function fetchSteamAchievements(appId: number): Promise<SteamAchievements> {
   return request(`/api/me/steam/games/${appId}/achievements`);
+}
+
+/** 플레이 시간 상위 게임들의 업적 달성 현황. 게임마다 Steam을 불러서 몇 초 걸릴 수 있다 */
+export function fetchAchievementSummary(): Promise<AchievementSummary> {
+  return request('/api/me/steam/achievement-summary');
 }
 
 export function fetchSteamWishlist(): Promise<SteamWishlist> {
