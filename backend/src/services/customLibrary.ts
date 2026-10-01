@@ -1,6 +1,8 @@
 import { db } from '../db.ts';
 import { HttpError } from '../utils/http.ts';
+import { normalizeTitle } from '../utils/text.ts';
 import { searchSteamAppId } from './steam.ts';
+import { fetchOwnedGames, steamApiConfigured } from './steamProfile.ts';
 
 /** 한 계정이 직접 추가할 수 있는 게임 수 */
 export const MAX_CUSTOM_GAMES = 500;
@@ -56,6 +58,29 @@ export async function listCustomGames(userId: number): Promise<CustomGameWithSte
       return { id: r.game_id, name: r.name, image: r.image, steamAppId };
     }),
   );
+}
+
+/** Steam 이름의 ™·®·©는 NFKC 정규화에서 "TM" 같은 글자가 되므로 비교 전에 뗀다 */
+const comparable = (name: string) => normalizeTitle(name.replace(/[™®©]/g, ''));
+
+/**
+ * Steam으로 이미 가진 게임이면 409. Steam 보유 게임은 서재에 자동으로 꽂히므로 같은 게임을 직접 추가하면 두 번 꽂힌다.
+ * 이미 직접 추가해 둔 게임을 다시 저장하는 요청은 막지 않는다(예전에 추가한 게임을 갱신할 수 있어야 한다).
+ * 보유 목록은 부가 확인이라, Steam을 연동하지 않았거나 목록을 가져오지 못하면(키 없음·Steam 장애·비공개) 막지 않는다.
+ */
+export async function assertNotOwnedOnSteam(userId: number, steamId: string | null, game: CustomGame): Promise<void> {
+  if (!steamId || !steamApiConfigured() || existsStmt.get(userId, game.id)) return;
+  let owned;
+  try {
+    owned = await fetchOwnedGames(steamId);
+  } catch (err) {
+    console.warn(`Steam 보유 게임 확인 실패 (사용자 ${userId}):`, err instanceof HttpError ? err.detail : err);
+    return;
+  }
+  const target = comparable(game.name);
+  if (target && owned.games.some((g) => comparable(g.name) === target)) {
+    throw new HttpError(409, '이미 Steam으로 가지고 있는 게임이에요. 서재에 이미 꽂혀 있어요.');
+  }
 }
 
 /** 이미 추가한 게임이면 저장된 정보만 갱신한다 */

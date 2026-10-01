@@ -4,7 +4,13 @@ import { getOrCreateCalendarToken, resetCalendarToken } from '../services/calend
 import { gamesLimiter, sensitiveLimiter, steamDataLimiter } from '../middleware/rateLimit.ts';
 import { summarizeAchievements } from '../services/achievementSummary.ts';
 import { addFavorite, listFavorites, removeFavorite } from '../services/favorites.ts';
-import { addCustomGame, listCustomGames, parseCustomGame, removeCustomGame } from '../services/customLibrary.ts';
+import {
+  addCustomGame,
+  assertNotOwnedOnSteam,
+  listCustomGames,
+  parseCustomGame,
+  removeCustomGame,
+} from '../services/customLibrary.ts';
 import { deleteGameLog, listGameLogs, parseGameLog, saveGameLog } from '../services/gameLog.ts';
 import { getPersonas, requestStyles } from '../services/gameStyle.ts';
 import { getLibraryOrder, parseLibraryOrder, saveLibraryOrder } from '../services/libraryOrder.ts';
@@ -219,11 +225,13 @@ meRouter.get('/library-games/search', gamesLimiter, async (req, res) => {
   res.json({ games: await searchGamesAny(q) });
 });
 
-/** PUT /api/me/library-games/:gameId { id, name, image } — 여러 번 호출해도 결과가 같다 */
-meRouter.put('/library-games/:gameId', (req, res) => {
+/** PUT /api/me/library-games/:gameId { id, name, image } — 여러 번 호출해도 결과가 같다. Steam으로 이미 가진 게임이면 409 */
+meRouter.put('/library-games/:gameId', async (req, res) => {
+  const user = currentUser(req);
   const game = parseCustomGame(req.body);
   if (game.id !== parseGameId(req.params.gameId)) throw new HttpError(400, '게임 ID가 일치하지 않습니다.');
-  addCustomGame(currentUser(req).id, game);
+  await assertNotOwnedOnSteam(user.id, user.steamId, game);
+  addCustomGame(user.id, game);
   res.status(204).end();
 });
 
