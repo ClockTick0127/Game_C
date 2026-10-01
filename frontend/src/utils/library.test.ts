@@ -6,6 +6,7 @@ import {
   formatTotalHours,
   gameLabel,
   logSummary,
+  normalizeGameName,
   placeAt,
   removeFrom,
   showcaseToOwned,
@@ -174,5 +175,17 @@ describe('showcaseToOwned', () => {
     });
     expect(game).toMatchObject({ appId: toLibraryId(3498), custom: true, steamAppId: 271590 });
     expect(game.coverUrl).toContain('/271590/library_600x900.jpg');
+  });
+});
+
+describe('normalizeGameName', () => {
+  it('대소문자·공백·기호를 무시해 같은 게임의 표기 차이를 맞춘다', () => {
+    expect(normalizeGameName('Portal™ 2')).toBe(normalizeGameName('portal 2'));
+    expect(normalizeGameName('DOOM Eternal')).toBe(normalizeGameName('Doom: Eternal'));
+    expect(normalizeGameName('엘든 링')).toBe('엘든링');
+  });
+
+  it('다른 게임은 구분한다', () => {
+    expect(normalizeGameName('Portal 2')).not.toBe(normalizeGameName('Portal'));
   });
 });

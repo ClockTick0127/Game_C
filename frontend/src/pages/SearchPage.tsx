@@ -6,11 +6,12 @@ import * as meApi from '../api/me';
 import { DDay } from '../components/DDay';
 import { GameDetailModal } from '../components/GameDetail';
 import { GameThumb } from '../components/GameThumb';
-import { LibraryAddButton } from '../components/LibraryAddButton';
+import { LibraryAddButton, type LibraryStatus } from '../components/LibraryAddButton';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import type { Game } from '../types';
+import { normalizeGameName } from '../utils/library';
 
 type Result = { kind: 'error'; message: string } | { kind: 'ok'; games: Game[] };
 
@@ -68,6 +69,31 @@ export function SearchPage() {
     };
   }, [userId]);
   const libraryIds = library && library.userId === userId ? library.ids : null;
+
+  // Steam으로 이미 가진 게임. Steam을 연동한 사람만 알아본다 (같은 게임을 서재에 두 번 꽂지 않게 한다)
+  const steamLinked = Boolean(user?.steamId);
+  const [steam, setSteam] = useState<{ userId: number; names: Set<string> } | null>(null);
+  useEffect(() => {
+    if (userId === undefined || !steamLinked) return;
+    let cancelled = false;
+    meApi
+      .fetchSteamGames()
+      // 비공개 프로필이거나 불러오지 못하면 비교할 수 없으니 막지 않는다
+      .then(
+        ({ games }) => !cancelled && setSteam({ userId, names: new Set(games.map((g) => normalizeGameName(g.name))) }),
+      )
+      .catch(() => !cancelled && setSteam({ userId, names: new Set() }));
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, steamLinked]);
+  const steamNames = steam && steam.userId === userId ? steam.names : null;
+
+  const libraryStatus = (game: Game): LibraryStatus => {
+    if (!libraryIds || (steamLinked && !steamNames)) return 'loading';
+    if (libraryIds.has(game.id)) return 'added';
+    return steamNames?.has(normalizeGameName(game.name)) ? 'steam' : 'none';
+  };
 
   const addToLibrary = async (game: Game) => {
     await meApi.addCustomGame({ id: game.id, name: game.name, image: game.image });
@@ -149,9 +175,7 @@ export function SearchPage() {
         <GameDetailModal
           game={selected}
           onClose={() => setSelected(null)}
-          actions={
-            <LibraryAddButton game={selected} added={libraryIds?.has(selected.id) ?? null} onAdd={addToLibrary} />
-          }
+          actions={<LibraryAddButton game={selected} status={libraryStatus(selected)} onAdd={addToLibrary} />}
         />
       )}
     </div>

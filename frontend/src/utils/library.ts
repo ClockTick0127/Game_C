@@ -44,6 +44,12 @@ export function customToOwned(game: CustomGame): SteamOwnedGame {
   };
 }
 
+/**
+ * 같은 게임인지 이름으로 비교하기 위한 형태: 대소문자, 공백, 기호(™ ® : - 등)를 무시한다.
+ * (Steam과 RAWG는 "DOOM Eternal"/"Doom Eternal", "Portal™ 2"/"Portal 2"처럼 표기가 조금씩 다르다)
+ */
+export const normalizeGameName = (name: string) => name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
 /** 공개 진열장의 게임을 상자(GameCase)가 그릴 수 있는 모양으로 바꾼다. 같이 올 기록은 메모 없이 상태·별점뿐이다 */
 export function showcaseToOwned(game: ShowcaseGame): { game: SteamOwnedGame; log: GameLog | undefined } {
   const owned: SteamOwnedGame = game.custom

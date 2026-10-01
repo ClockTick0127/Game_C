@@ -29,6 +29,7 @@ beforeEach(() => {
   vi.mocked(authApi.fetchMe).mockRejectedValue(new ApiError(401, '로그인이 필요합니다.'));
   vi.mocked(meApi.fetchFavorites).mockResolvedValue({ games: [] });
   vi.mocked(meApi.fetchCustomGames).mockResolvedValue({ games: [] });
+  vi.mocked(meApi.fetchSteamGames).mockResolvedValue({ private: false, games: [] });
   vi.mocked(gamesApi.findGames).mockResolvedValue({ games: [released, undated] });
 });
 
@@ -151,6 +152,50 @@ describe('SearchPage', () => {
       renderSearch('/search?q=elden');
       const dialog = await openElden(user);
       expect(await within(dialog).findByRole('button', { name: /서재에 추가됨/ })).toBeDisabled();
+    });
+
+    it('Steam으로 이미 가진 게임은 표기가 조금 달라도 추가할 수 없다', async () => {
+      const user = userEvent.setup();
+      vi.mocked(authApi.fetchMe).mockResolvedValue({ user: { ...testUser, steamId: '76561198000000001' } });
+      vi.mocked(meApi.fetchSteamGames).mockResolvedValue({
+        private: false,
+        games: [
+          {
+            appId: 5,
+            name: 'ELDEN RING™',
+            playtimeMinutes: 60,
+            lastPlayedAt: null,
+            image: '',
+            iconUrl: null,
+            persona: null,
+          },
+        ],
+      });
+      renderSearch('/search?q=elden');
+      const dialog = await openElden(user);
+
+      const button = await within(dialog).findByRole('button', { name: /Steam 보유 게임/ });
+      expect(button).toBeDisabled();
+      expect(within(dialog).getByText(/Steam으로 이미 가진 게임/)).toBeInTheDocument();
+      expect(meApi.addCustomGame).not.toHaveBeenCalled();
+    });
+
+    it('Steam을 연동했어도 보유 목록을 못 불러오면 막지 않는다', async () => {
+      const user = userEvent.setup();
+      vi.mocked(authApi.fetchMe).mockResolvedValue({ user: { ...testUser, steamId: '76561198000000001' } });
+      vi.mocked(meApi.fetchSteamGames).mockRejectedValue(new ApiError(502, 'Steam 오류'));
+      renderSearch('/search?q=elden');
+      const dialog = await openElden(user);
+      expect(await within(dialog).findByRole('button', { name: /내 서재에 추가/ })).toBeEnabled();
+    });
+
+    it('Steam을 연동하지 않은 사람은 Steam 보유 목록을 조회하지 않는다', async () => {
+      const user = userEvent.setup();
+      vi.mocked(authApi.fetchMe).mockResolvedValue({ user: testUser });
+      renderSearch('/search?q=elden');
+      const dialog = await openElden(user);
+      await within(dialog).findByRole('button', { name: /내 서재에 추가/ });
+      expect(meApi.fetchSteamGames).not.toHaveBeenCalled();
     });
 
     it('Steam을 연동하지 않았으면 서재를 보려면 연동이 필요하다고 알린다', async () => {

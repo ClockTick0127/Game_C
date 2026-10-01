@@ -17,6 +17,7 @@ import {
   filterByStatus,
   formatTotalHours,
   gameLabel,
+  normalizeGameName,
   placeAt,
   recentGames,
   removeFrom,
@@ -596,7 +597,7 @@ export function LibraryPage() {
       {adding && (
         <AddGameModal
           added={new Set(customGames.map((g) => toLibraryId(g.id)))}
-          owned={new Set(data?.games.map((g) => g.name.toLowerCase()))}
+          owned={new Set(data?.games.map((g) => normalizeGameName(g.name)))}
           onAdd={addCustom}
           onClose={() => setAdding(false)}
         />
@@ -700,7 +701,7 @@ function AddGameModal({
 }: {
   /** 이미 직접 추가한 게임의 서재 번호 */
   added: Set<number>;
-  /** Steam으로 이미 갖고 있는 게임 이름(소문자). 같은 이름이면 중복이라고 알린다 */
+  /** Steam으로 이미 갖고 있는 게임 이름(normalizeGameName). 같은 이름이면 중복이라고 알린다 */
   owned: Set<string>;
   onAdd: (game: CustomGame) => Promise<void>;
   onClose: () => void;
@@ -761,7 +762,7 @@ function AddGameModal({
         <ul className="add-game-results">
           {results.map((game) => {
             const done = added.has(toLibraryId(game.id));
-            const steam = owned.has(game.name.toLowerCase());
+            const steam = owned.has(normalizeGameName(game.name));
             return (
               <li key={game.id}>
                 {game.image ? <img src={game.image} alt="" loading="lazy" /> : <span className="add-game-noimg" />}
