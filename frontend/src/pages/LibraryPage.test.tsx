@@ -900,6 +900,11 @@ describe('LibraryPage 오늘 뭐 하지?', () => {
     expect(names).toEqual(['Alpha', 'Portal', 'Zero']);
     expect(within(picksRegion()).getByText('가지고만 있고 한 번도 안 해 본 게임이에요.')).toBeInTheDocument();
     expect(within(picksRegion()).getByText('10분만 해 보고 만 게임이에요.')).toBeInTheDocument();
+    // 카운터 왼쪽 위의 눈썹 글에 추천 수가 보인다
+    expect(within(picksRegion()).getByText('오늘의 추천 · 3개')).toBeInTheDocument();
+    // 카드마다 추천 종류 스티커가 붙는다
+    expect(within(picksRegion()).getAllByText('다시 도전')).toHaveLength(2);
+    expect(within(picksRegion()).getByText('아직 안 해 봤어요')).toBeInTheDocument();
   });
 
   it('클리어한 게임은 추천하지 않고, 쌓아 둔 게임은 이유에 나온다', async () => {
@@ -916,6 +921,27 @@ describe('LibraryPage 오늘 뭐 하지?', () => {
     const names = within(picksRegion()).getAllByRole('button', { name: /,/ }).map(labelName).sort();
     expect(names).toEqual(['Alpha', 'Portal']);
     expect(within(picksRegion()).getByText('쌓아 둔 게임이에요. 이제 꺼낼 때가 됐어요.')).toBeInTheDocument();
+  });
+
+  it('이유는 첫 줄만 화면에 보이고, 취향 이유까지 모두 접근성 이름에 들어 있다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(meApi.fetchSteamGames).mockResolvedValue({
+      private: false,
+      games: [
+        { ...game(1, 'Loved SF', 6000), persona: 'scifi' },
+        { ...game(2, 'New SF', 0), persona: 'scifi' },
+      ],
+    });
+    vi.mocked(meApi.fetchGameLogs).mockResolvedValue({
+      logs: [{ gameId: 1, status: 'cleared', rating: 5, note: '' }],
+    });
+    renderLibrary();
+    await open(user);
+
+    const card = within(picksRegion()).getByRole('button', { name: /^New SF,/ });
+    expect(within(card).getByText('가지고만 있고 한 번도 안 해 본 게임이에요.')).toBeInTheDocument();
+    expect(within(card).queryByText('SF 게임을 즐겨 하시네요.')).not.toBeInTheDocument();
+    expect(card.getAttribute('aria-label')).toContain('SF 게임을 즐겨 하시네요.');
   });
 
   it('추천된 게임을 누르면 게임 창이 열린다', async () => {
@@ -941,7 +967,7 @@ describe('LibraryPage 오늘 뭐 하지?', () => {
     vi.mocked(meApi.fetchSteamGames).mockResolvedValue({ private: false, games: [game(1, 'Terraria', 600)] });
     renderLibrary();
     await open(user);
-    expect(within(picksRegion()).getByText(/추천할 게임이 없어요/)).toBeInTheDocument();
+    expect(within(picksRegion()).getByText(/오늘 꺼내 둘 게임이 없어요/)).toBeInTheDocument();
   });
 
   it('배치를 바꾸는 중에는 숨긴다', async () => {
@@ -950,5 +976,13 @@ describe('LibraryPage 오늘 뭐 하지?', () => {
     await open(user);
     await user.click(screen.getByRole('button', { name: '배치 바꾸기' }));
     expect(screen.queryByRole('region', { name: '오늘 뭐 하지?' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '오늘 뭐 하지?' })).not.toBeInTheDocument();
+  });
+
+  it('서재를 볼 수 없는 상태(Steam 미연동)에는 버튼이 없다', async () => {
+    vi.mocked(authApi.fetchMe).mockResolvedValue({ user: testUser });
+    renderLibrary();
+    await screen.findByText(/Steam 계정을 연동하면/);
+    expect(screen.queryByRole('button', { name: '오늘 뭐 하지?' })).not.toBeInTheDocument();
   });
 });

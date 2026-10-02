@@ -2,7 +2,7 @@ import type { GameLog, Persona, SteamOwnedGame } from '../types';
 import { PERSONA_LABELS } from './libraryStats';
 
 /** 한 번에 보여 주는 추천 수 */
-export const PICK_COUNT = 3;
+export const PICK_COUNT = 5;
 
 /** 이 시간(분)보다 적게 해 본 게임은 "해 보다 만" 게임으로 본다 */
 export const BARELY_PLAYED_MINUTES = 120;
@@ -15,8 +15,19 @@ const AFFINITY_NOTE = 0.5;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** 추천 종류: 하던 게임 이어하기 · 쌓아 둔 게임 · 안 해 본 게임 · 해 보다 만 게임 */
+export type PickKind = 'playing' | 'backlog' | 'unplayed' | 'barely';
+
+export const PICK_KIND_LABELS: Record<PickKind, string> = {
+  playing: '이어서 하기',
+  backlog: '쌓아 둔 게임',
+  unplayed: '아직 안 해 봤어요',
+  barely: '다시 도전',
+};
+
 export interface Pick {
   game: SteamOwnedGame;
+  kind: PickKind;
   /** 이 게임을 고른 이유 (한두 줄) */
   reasons: string[];
   score: number;
@@ -59,8 +70,10 @@ export function candidatePicks(
 
     let score: number;
     let reason: string;
+    let kind: PickKind;
     if (status === 'playing') {
       score = 3;
+      kind = 'playing';
       const days = game.lastPlayedAt ? Math.floor((now - new Date(game.lastPlayedAt).getTime()) / DAY_MS) : null;
       reason =
         days === null || days < 0
@@ -70,12 +83,15 @@ export function candidatePicks(
             : `${days.toLocaleString('ko-KR')}일 전까지 하던 게임이에요. 이어서 해 볼까요?`;
     } else if (status === 'backlog') {
       score = 2.5;
+      kind = 'backlog';
       reason = '쌓아 둔 게임이에요. 이제 꺼낼 때가 됐어요.';
     } else if (game.playtimeMinutes === 0) {
       score = 1.5;
+      kind = 'unplayed';
       reason = game.custom ? '서재에 꽂아 두기만 한 게임이에요.' : '가지고만 있고 한 번도 안 해 본 게임이에요.';
     } else if (game.playtimeMinutes < BARELY_PLAYED_MINUTES) {
       score = 1;
+      kind = 'barely';
       reason = `${game.playtimeMinutes.toLocaleString('ko-KR')}분만 해 보고 만 게임이에요.`;
     } else {
       continue; // 상태를 정하지 않았지만 이미 충분히 해 본 게임
@@ -84,7 +100,7 @@ export function candidatePicks(
     const reasons = [reason];
     const fit = game.persona ? (affinity.get(game.persona) ?? 0) : 0;
     if (fit >= AFFINITY_NOTE && game.persona) reasons.push(`${PERSONA_LABELS[game.persona]} 게임을 즐겨 하시네요.`);
-    picks.push({ game, reasons, score: score + 2 * fit });
+    picks.push({ game, kind, reasons, score: score + 2 * fit });
   }
   return picks;
 }

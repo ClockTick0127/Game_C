@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GameLog, GameStatus, Persona, SteamOwnedGame } from '../types';
-import { candidatePicks, personaAffinity, recommendGames } from './recommend';
+import { candidatePicks, personaAffinity, PICK_COUNT, recommendGames } from './recommend';
 
 const NOW = new Date('2026-10-10T00:00:00.000Z').getTime();
 
@@ -55,6 +55,12 @@ describe('candidatePicks', () => {
     expect(byName.Backlog!.reasons[0]).toContain('쌓아 둔');
     expect(byName.Unplayed!.reasons[0]).toContain('한 번도 안 해 본');
     expect(byName.Barely!.reasons[0]).toBe('45분만 해 보고 만 게임이에요.');
+    expect([byName.Playing!.kind, byName.Backlog!.kind, byName.Unplayed!.kind, byName.Barely!.kind]).toEqual([
+      'playing',
+      'backlog',
+      'unplayed',
+      'barely',
+    ]);
     expect(byName.Playing!.score).toBeGreaterThan(byName.Backlog!.score);
     expect(byName.Backlog!.score).toBeGreaterThan(byName.Unplayed!.score);
     expect(byName.Unplayed!.score).toBeGreaterThan(byName.Barely!.score);
@@ -106,6 +112,12 @@ describe('recommendGames', () => {
     const picks = recommendGames(games, {}, { count: 3, now: NOW });
     expect(picks).toHaveLength(3);
     expect(new Set(picks.map((p) => p.game.appId)).size).toBe(3);
+  });
+
+  it('개수를 정하지 않으면 한 번에 PICK_COUNT(5)개를 고른다', () => {
+    const many = Array.from({ length: 9 }, (_, i) => game(i + 1, `Game ${i + 1}`, 0));
+    expect(PICK_COUNT).toBe(5);
+    expect(recommendGames(many, {}, { now: NOW })).toHaveLength(PICK_COUNT);
   });
 
   it('난수에 따라 다른 게임이 뽑힌다 (다시 뽑기)', () => {

@@ -316,14 +316,35 @@ export function LibraryPage() {
   };
 
   const heldOnShelf = held !== null && whereIs(held) === 'shelf';
+  // 추천은 서재가 보이는 상태(연동·불러옴·공개·게임 있음)에서, 배치를 바꾸는 중이 아닐 때만 쓴다
+  const canPick = linked && !error && data !== null && !data.private && allGames.length > 0 && !editing;
   const classNames = (...names: (string | false)[]) => names.filter(Boolean).join(' ');
 
   return (
     <div className="library">
-      <h1 className="page-title">내 서재</h1>
-      <p className="library-intro">
-        진열장에는 자랑하고 싶은 게임을, 아래 서재에는 나머지 게임을 꽂아 뒀어요. 누르면 업적을 볼 수 있어요.
-      </p>
+      <div className="library-head">
+        <div>
+          <h1 className="page-title">내 서재</h1>
+          <p className="library-intro">
+            진열장에는 자랑하고 싶은 게임을, 아래 서재에는 나머지 게임을 꽂아 뒀어요. 누르면 업적을 볼 수 있어요.
+          </p>
+        </div>
+        {canPick && (
+          <button
+            type="button"
+            className="picks-toggle"
+            onClick={() => setShowPicks((v) => !v)}
+            aria-expanded={showPicks}
+          >
+            <span>오늘 뭐 하지?</span>
+            <span className="picks-toggle-caret" aria-hidden="true">
+              ▾
+            </span>
+          </button>
+        )}
+      </div>
+
+      {canPick && showPicks && <TodayPicks games={allGames} logs={logs} onOpen={setSelected} />}
 
       {!linked ? (
         <div className="card">
@@ -470,21 +491,11 @@ export function LibraryPage() {
               >
                 {showStats ? '통계 접기' : '통계 보기'}
               </button>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() => setShowPicks((v) => !v)}
-                aria-expanded={showPicks}
-              >
-                오늘 뭐 하지?
-              </button>
               <span className="filter-result">
                 게임 {allGames.length.toLocaleString('ko-KR')}개 · 총 {formatTotalHours(totalMinutes)} 플레이
               </span>
             </div>
           )}
-
-          {showPicks && !editing && <TodayPicks games={allGames} logs={logs} onOpen={setSelected} />}
 
           {showStats && !editing && (
             <LibraryStats games={data.games} logs={logs} libraryIds={new Set(allGames.map((g) => g.appId))} />
