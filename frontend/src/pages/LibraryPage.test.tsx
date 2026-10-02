@@ -795,13 +795,24 @@ describe('LibraryPage — 통계', () => {
 
     await user.click(screen.getByRole('button', { name: '통계 보기' }));
     const stats = screen.getByRole('region', { name: '서재 통계' });
-    expect(within(stats).getByText('4개')).toBeInTheDocument(); // 보유 게임
-    expect(within(stats).getByText('11.7시간')).toBeInTheDocument();
+    expect(within(stats).getByText('1개 (25%)')).toBeInTheDocument(); // 아직 안 해 본 게임
+    expect(within(stats).getByText('3.9시간')).toBeInTheDocument(); // 플레이한 게임당 평균
     expect(screen.getByRole('button', { name: '통계 접기' })).toHaveAttribute('aria-expanded', 'true');
     expect(meApi.fetchAchievementSummary).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: '통계 접기' }));
     expect(screen.queryByRole('region', { name: '서재 통계' })).not.toBeInTheDocument();
+  });
+
+  it('"가장 오래 한 게임"을 누르면 그 게임의 창이 열린다', async () => {
+    const user = userEvent.setup();
+    renderLibrary();
+    await screen.findByRole('button', { name: /^Terraria,/ });
+    await user.click(screen.getByRole('button', { name: '통계 보기' }));
+    await user.click(
+      within(screen.getByRole('region', { name: '가장 오래 한 게임' })).getByRole('button', { name: /Portal/ }),
+    );
+    expect(screen.getByRole('dialog')).toHaveTextContent('Portal');
   });
 
   it('남긴 기록이 통계의 "내 기록"에 반영된다', async () => {

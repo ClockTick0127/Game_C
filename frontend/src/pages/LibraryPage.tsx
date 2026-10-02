@@ -498,7 +498,12 @@ export function LibraryPage() {
           )}
 
           {showStats && !editing && (
-            <LibraryStats games={data.games} logs={logs} libraryIds={new Set(allGames.map((g) => g.appId))} />
+            <LibraryStats
+              games={data.games}
+              logs={logs}
+              libraryIds={new Set(allGames.map((g) => g.appId))}
+              onOpen={setSelected}
+            />
           )}
 
           {recent.length > 0 && !editing && (
