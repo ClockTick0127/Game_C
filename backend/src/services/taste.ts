@@ -37,12 +37,12 @@ export function computeAffinity(items: TasteInput[]): Affinity {
   return affinity;
 }
 
-/** 이 값(0~1) 이상 즐겨 하는 분위기만 취향으로 본다 (frontend/src/utils/taste.ts의 TASTE_THRESHOLD와 같다) */
+/** 이 값(0~1) 이상 즐겨 하는 분위기만 취향으로 본다 */
 export const TASTE_THRESHOLD = 0.5;
 /** 취향으로 삼는 분위기의 최대 개수 */
 export const MAX_LIKED_PERSONAS = 3;
 
-/** 즐겨 하는 분위기들(좋아하는 순). frontend/src/utils/taste.ts의 likedPersonas와 같은 규칙이다 */
+/** 즐겨 하는 분위기들(좋아하는 순). "무엇을 취향으로 칠지"는 서버가 한 곳에서만 정하고, 화면은 결과(Taste.liked)를 그대로 쓴다 */
 export function likedPersonas(affinity: Affinity): Persona[] {
   return (Object.entries(affinity) as [Persona, number][])
     .filter(([persona, value]) => persona !== 'default' && value >= TASTE_THRESHOLD)
@@ -54,6 +54,8 @@ export function likedPersonas(affinity: Affinity): Persona[] {
 export interface Taste {
   /** 분위기별 취향(0~1). 아직 계산할 수 없으면 비어 있다 */
   affinity: Affinity;
+  /** 즐겨 하는 분위기들(좋아하는 순). 캘린더 강조와 검색 추천이 같은 기준을 쓰도록 서버가 정해서 내려 준다 */
+  liked: Persona[];
   /** 분위기를 알아낸 보유 게임 수 / 전체 보유 게임 수 (나머지는 백그라운드에서 알아내는 중이다) */
   analyzed: number;
   total: number;
@@ -80,5 +82,6 @@ export async function getTaste(userId: number, steamId: string): Promise<Taste> 
   }));
   const analyzed = personas.size;
   const ready = analyzed >= MIN_ANALYZED_GAMES;
-  return { affinity: ready ? computeAffinity(items) : {}, analyzed, total: ids.length, ready };
+  const affinity = ready ? computeAffinity(items) : {};
+  return { affinity, liked: likedPersonas(affinity), analyzed, total: ids.length, ready };
 }

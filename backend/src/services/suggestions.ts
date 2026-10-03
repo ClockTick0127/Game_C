@@ -4,7 +4,7 @@ import { normalizeTitle } from '../utils/text.ts';
 import type { Persona } from './gameStyle.ts';
 import { getRankedReleases, type RankedGame } from './releases.ts';
 import { fetchOwnedGames } from './steamProfile.ts';
-import { getTaste, likedPersonas, type Affinity } from './taste.ts';
+import { getTaste, type Affinity } from './taste.ts';
 
 /** 한 번에 보여 주는 추천 수 */
 export const SUGGESTION_COUNT = 8;
@@ -47,7 +47,7 @@ export async function getSuggestions(user: { id: number; steamId: string | null 
       const taste = await getTaste(user.id, user.steamId);
       if (taste.ready) {
         affinity = taste.affinity;
-        liked = likedPersonas(affinity);
+        liked = taste.liked;
       }
       ownedNames = new Set((await fetchOwnedGames(user.steamId)).games.map((g) => normalizeTitle(g.name)));
     } catch (err) {

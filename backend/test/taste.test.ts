@@ -68,7 +68,7 @@ describe('GET /api/me/taste', () => {
     const { c } = await linked();
     const res = await c.request('GET', '/api/me/taste');
     assert.equal(res.status, 200);
-    assert.deepEqual(res.json, { affinity: {}, analyzed: 2, total: 6, ready: false });
+    assert.deepEqual(res.json, { affinity: {}, liked: [], analyzed: 2, total: 6, ready: false });
   });
 
   it('플레이 시간·클리어·별점이 높은 분위기일수록 취향이 높다', async () => {
@@ -93,6 +93,8 @@ describe('GET /api/me/taste', () => {
     assert.equal(a.horror, 1);
     assert.ok(a.cute! > 0 && a.cute! < 1);
     assert.equal(a.strategy, 0); // 포기하고 낮은 별점을 준 분위기
+    // 취향 판정(문턱 0.5 이상, 좋아하는 순)은 서버가 정해서 내려 준다: horror 1, cute는 0.5 미만이라 빠진다
+    assert.deepEqual(res.json.liked, ['horror']);
   });
 
   it('다른 사용자의 기록은 섞이지 않는다', async () => {
@@ -107,5 +109,32 @@ describe('GET /api/me/taste', () => {
     assert.ok(ra.scifi! > 0.5 && ra.scifi! <= 1);
     assert.ok(rb.fantasy! === 1);
     assert.notDeepEqual(ra, rb);
+  });
+});
+
+describe('likedPersonas — 무엇을 취향으로 칠지', () => {
+  // db를 여는 모듈이라 테스트 서버가 환경변수를 정한 뒤에 불러온다
+  const load = async () => (await import('../src/services/taste.ts')) as typeof import('../src/services/taste.ts');
+
+  it('문턱(0.5) 이상인 분위기만 좋아하는 순으로 고른다', async () => {
+    const { likedPersonas, TASTE_THRESHOLD } = await load();
+    assert.deepEqual(likedPersonas({ scifi: 1, fantasy: 0.7, cute: 0.2, horror: TASTE_THRESHOLD }), [
+      'scifi',
+      'fantasy',
+      'horror',
+    ]);
+  });
+
+  it('고르게 즐겨서 거의 모든 분위기가 문턱을 넘어도 상위 3개까지만 취향으로 본다', async () => {
+    const { likedPersonas, MAX_LIKED_PERSONAS } = await load();
+    const liked = likedPersonas({ scifi: 1, fantasy: 0.9, horror: 0.8, cute: 0.7, retro: 0.6 });
+    assert.deepEqual(liked, ['scifi', 'fantasy', 'horror']);
+    assert.equal(liked.length, MAX_LIKED_PERSONAS);
+  });
+
+  it('"기타"는 취향이 아니고, 계산할 수 없으면 비어 있다', async () => {
+    const { likedPersonas } = await load();
+    assert.deepEqual(likedPersonas({ default: 1, scifi: 0.6 }), ['scifi']);
+    assert.deepEqual(likedPersonas({}), []);
   });
 });

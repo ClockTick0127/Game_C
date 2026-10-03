@@ -400,7 +400,14 @@ describe('CalendarPage — 주간·목록 보기', () => {
 
 describe('CalendarPage — 서재 취향 강조', () => {
   const linkedUser = { ...testUser, steamId: '76561198000000001' };
-  const taste = { affinity: { scifi: 1, fantasy: 0.7, cute: 0.2 }, analyzed: 20, total: 30, ready: true };
+  // 무엇을 취향으로 칠지(liked)는 서버가 정해서 내려 주고, 화면은 그대로 쓴다
+  const taste = {
+    affinity: { scifi: 1, fantasy: 0.7, cute: 0.2 },
+    liked: ['scifi' as const, 'fantasy' as const],
+    analyzed: 20,
+    total: 30,
+    ready: true,
+  };
   // 오늘은 6월 15일이다. 취향(SF·판타지)에 맞는 예정작 / 취향이 아닌 예정작 / 이미 출시된 SF / 분위기를 모르는 게임
   const tasteGames = () => [
     game(1, '별빛 오디세이', 20, { persona: 'scifi' }),
@@ -452,12 +459,22 @@ describe('CalendarPage — 서재 취향 강조', () => {
   });
 
   it('취향을 아직 믿을 수 없으면(분석한 게임이 적음) 표시도 필터도 없다', async () => {
-    vi.mocked(meApi.fetchTaste).mockResolvedValue({ affinity: {}, analyzed: 2, total: 30, ready: false });
+    vi.mocked(meApi.fetchTaste).mockResolvedValue({ affinity: {}, liked: [], analyzed: 2, total: 30, ready: false });
     await renderCalendar(tasteGames());
     await waitFor(() => expect(meApi.fetchTaste).toHaveBeenCalled());
 
     expect(marker('별빛 오디세이')).toBeNull();
     expect(screen.queryByRole('checkbox', { name: /내 취향만/ })).not.toBeInTheDocument();
+  });
+
+  it('무엇을 취향으로 칠지는 서버가 내려 준 liked를 그대로 따른다 (점수가 높아도 liked에 없으면 강조하지 않는다)', async () => {
+    vi.mocked(meApi.fetchTaste).mockResolvedValue({ ...taste, liked: ['fantasy'] });
+    await renderCalendar([
+      game(1, '별빛 오디세이', 20, { persona: 'scifi' }),
+      game(2, '왕국의 불꽃', 21, { persona: 'fantasy' }),
+    ]);
+    await waitFor(() => expect(marker('왕국의 불꽃')).not.toBeNull());
+    expect(marker('별빛 오디세이')).toBeNull(); // scifi 점수는 1이지만 서버가 취향으로 치지 않았다
   });
 
   it('Steam을 연동하지 않았거나 로그인하지 않았으면 취향을 조회하지 않는다', async () => {

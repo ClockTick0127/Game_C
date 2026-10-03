@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import * as meApi from '../api/me';
 import type { Game, Persona, Taste } from '../types';
 import { toDateKey } from '../utils/calendar';
-import { likedPersonas, tasteMatch } from '../utils/taste';
+import { tasteMatch } from '../utils/taste';
 import { useAuth } from './AuthContext';
 
 interface TasteValue {
@@ -48,7 +48,7 @@ export function TasteProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<TasteValue>(() => {
     if (!taste?.ready) return NO_TASTE;
-    const liked = new Set(likedPersonas(taste.affinity));
+    const liked = new Set(taste.liked);
     if (liked.size === 0) return NO_TASTE;
     return { ready: true, match: (game) => tasteMatch(game, liked, toDateKey(new Date())) };
   }, [taste]);

@@ -28,6 +28,8 @@ export interface Suggestions {
 export interface Taste {
   /** 분위기별 취향(0~1). 가장 즐겨 하는 분위기가 1이고, 아직 계산할 수 없으면 비어 있다 */
   affinity: Partial<Record<Persona, number>>;
+  /** 즐겨 하는 분위기들(좋아하는 순). 무엇을 취향으로 칠지는 서버가 정하고 화면은 이 값을 그대로 쓴다 */
+  liked: Persona[];
   /** 분위기를 알아낸 보유 게임 수 / 전체 보유 게임 수 */
   analyzed: number;
   total: number;

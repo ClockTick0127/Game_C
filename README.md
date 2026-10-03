@@ -102,7 +102,7 @@ backend/                          Node.js + Express + SQLite(node:sqlite)
 | DELETE | `/api/me/game-logs/:gameId` 🔒 | 기록 삭제 |
 | PUT | `/api/me/profile-visibility` 🔒 | 진열장 공개 여부. `{ public: boolean }` → `{ user }`. 다른 공개 계정이 같은 닉네임이면 409 |
 | GET | `/api/profiles/:nickname/showcase` | 공개한 사용자의 진열장(로그인 불필요). `{ nickname, games: [{ appId, name, playtimeMinutes, custom, image, steamAppId, status, rating }] }`. 비공개이거나 없는 닉네임이면 404 (Steam 보유 게임 조회와 같은 요청 제한을 공유) |
-| GET | `/api/me/taste` 🔒 | 보유 게임으로 알아낸 분위기별 취향(Steam 연동 필요). `{ affinity: { scifi: 1, fantasy: 0.72, … }, analyzed, total, ready }`. 분석한 게임이 5개 미만이면 `ready: false`이고 affinity가 비어 있음 |
+| GET | `/api/me/taste` 🔒 | 보유 게임으로 알아낸 분위기별 취향(Steam 연동 필요). `{ affinity: { scifi: 1, fantasy: 0.72, … }, liked: ['scifi', 'fantasy'], analyzed, total, ready }`. `liked`는 서버가 정한 "취향 분위기"(0.5 이상, 상위 3개)라 캘린더 강조와 검색 추천이 같은 기준을 쓴다. 분석한 게임이 5개 미만이면 `ready: false`이고 affinity·liked가 비어 있음 |
 | GET | `/api/me/steam/achievement-summary` 🔒 | 플레이 시간 상위 20개 게임의 업적 달성 현황(Steam 연동·API 키 필요). `{ private, games: [{ appId, name, total, achieved }], checked, hidden, failed }`. hidden은 업적이 비공개인 게임 수, failed는 조회에 실패한 게임 수 (5분 캐시, 실패가 있으면 캐시하지 않음) |
 
 🔒 로그인 필요 (없으면 401). 실패 시 `{ error: "사유" }`와 함께 400 / 401 / 409(이메일 중복) / 502·504(RAWG 오류) 등을 반환합니다.

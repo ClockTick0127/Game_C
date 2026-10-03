@@ -1,28 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Persona } from '../types';
 import { makeGame } from '../test/fixtures';
-import { likedPersonas, MAX_LIKED_PERSONAS, tasteMatch, tasteReason, TASTE_THRESHOLD } from './taste';
-
-describe('likedPersonas', () => {
-  it('문턱 이상인 분위기만 좋아하는 순으로 고른다', () => {
-    expect(likedPersonas({ scifi: 1, fantasy: 0.7, cute: 0.2, horror: TASTE_THRESHOLD })).toEqual([
-      'scifi',
-      'fantasy',
-      'horror',
-    ]);
-  });
-
-  it('고르게 즐겨서 거의 모든 분위기가 문턱을 넘어도 상위 3개까지만 취향으로 본다', () => {
-    const affinity = { scifi: 1, fantasy: 0.9, horror: 0.8, cute: 0.7, retro: 0.6 };
-    expect(likedPersonas(affinity)).toEqual(['scifi', 'fantasy', 'horror']);
-    expect(likedPersonas(affinity)).toHaveLength(MAX_LIKED_PERSONAS);
-  });
-
-  it('"기타"는 취향이 아니고, 계산할 수 없으면 비어 있다', () => {
-    expect(likedPersonas({ default: 1, scifi: 0.6 })).toEqual(['scifi']);
-    expect(likedPersonas({})).toEqual([]);
-  });
-});
+import { tasteMatch, tasteReason } from './taste';
 
 describe('tasteMatch', () => {
   const liked = new Set<Persona>(['scifi', 'fantasy']);
