@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { gamesLimiter } from '../middleware/rateLimit.ts';
 import { IS_SAMPLE_MODE, getReleases } from '../services/releases.ts';
+import { getSuggestions } from '../services/suggestions.ts';
 import { searchGamesAny } from '../services/koreanSearch.ts';
 import { searchGameByName } from '../services/rawg.ts';
 import type { Game } from '../types.ts';
@@ -35,6 +36,16 @@ gamesRouter.get('/', async (req, res) => {
   }
 
   res.json(await getReleases(start, end));
+});
+
+/**
+ * GET /api/games/suggestions — 게임 검색 첫 화면에 띄울 추천. 로그인하고 Steam을 연동했으면 서재 취향에 맞는 신작·예정작을,
+ * 아니면 인기 있는 예정작을 준다. `{ personalized, liked, games }`
+ */
+gamesRouter.get('/suggestions', async (req, res) => {
+  // 로그인 여부에 따라 내용이 달라지므로 공유 캐시에 남지 않게 한다
+  res.set('Cache-Control', 'private, no-store');
+  res.json(await getSuggestions(req.user ? { id: req.user.id, steamId: req.user.steamId } : null));
 });
 
 /** GET /api/games/:id/store-info — 스토어 바로가기 링크와 Steam 사용자 평가 */

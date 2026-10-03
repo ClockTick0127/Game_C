@@ -1,4 +1,5 @@
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useTaste } from '../contexts/TasteContext';
 import type { Game } from '../types';
 import { buildCalendarDays, toDateKey, WEEKDAYS } from '../utils/calendar';
 import { GameThumb } from './GameThumb';
@@ -27,6 +28,7 @@ export function CalendarGrid({
   onSelectDay,
 }: Props) {
   const { isFavorite } = useFavorites();
+  const taste = useTaste();
   const days = buildCalendarDays(year, month);
   const todayKey = toDateKey(new Date());
 
@@ -73,6 +75,7 @@ export function CalendarGrid({
                     className={[
                       'game-chip',
                       isFavorite(game.id) && 'favorite',
+                      taste.match(game) && 'taste',
                       game.id === selectedGameId && 'selected',
                     ]
                       .filter(Boolean)
@@ -83,6 +86,11 @@ export function CalendarGrid({
                   >
                     <GameThumb game={game} className="chip-thumb" />
                     <span className="chip-name">{game.name}</span>
+                    {taste.match(game) && (
+                      <span className="chip-taste" role="img" aria-label="취향에 맞는 게임">
+                        ✦
+                      </span>
+                    )}
                     {isFavorite(game.id) && (
                       <span className="chip-star" aria-label="관심 게임">
                         ★

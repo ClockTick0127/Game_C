@@ -47,6 +47,9 @@
   --plank-4: #4d3019;
   /* 서재 통계 차트의 막대(올해 외) */
   --chart-bar: #3a4156;
+  /* 서재 취향에 맞는 출시 예정 게임 강조 */
+  --taste: #b3a2ff;
+  --taste-ring: rgba(179, 162, 255, 0.55);
 
   color-scheme: dark;
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
@@ -1478,6 +1481,34 @@ a.metascore:hover {
 
 .game-chip.favorite {
   box-shadow: inset 0 0 0 1px var(--star-ring);
+}
+
+/* 서재 취향에 맞는 출시 예정 게임. 관심 게임(별 테두리)이면 그 표시를 우선한다 */
+.game-chip.taste:not(.favorite) {
+  box-shadow: inset 0 0 0 1px var(--taste-ring);
+}
+
+.chip-taste,
+.list-taste {
+  flex: none;
+  color: var(--taste);
+  font-size: 11px;
+}
+
+.chip-taste {
+  margin-left: auto;
+  padding-right: 2px;
+}
+
+.chip-taste + .chip-star {
+  margin-left: 0;
+}
+
+.detail-taste {
+  margin: -6px 0 12px;
+  color: var(--taste);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .chip-star {
@@ -4170,4 +4201,28 @@ a.metascore:hover {
   .today-card .case {
     transition: none;
   }
+}
+
+/* 게임 검색 첫 화면의 추천 */
+.suggest {
+  margin-top: 20px;
+}
+
+.suggest-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.suggest-sub {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.suggest-error {
+  margin-top: 20px;
+}
+
+.suggest-note {
+  color: var(--taste);
+  font-weight: 600;
 }

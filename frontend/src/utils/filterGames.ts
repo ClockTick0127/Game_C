@@ -6,12 +6,20 @@ export interface GameFilter {
   platform: string | null;
   genre: string | null;
   favoritesOnly: boolean;
+  /** 서재 취향에 맞는 출시 예정 게임만 */
+  tasteOnly: boolean;
 }
 
-export const NO_FILTER: GameFilter = { query: '', platform: null, genre: null, favoritesOnly: false };
+export const NO_FILTER: GameFilter = { query: '', platform: null, genre: null, favoritesOnly: false, tasteOnly: false };
 
 export function isFilterActive(filter: GameFilter): boolean {
-  return filter.query.trim() !== '' || filter.platform !== null || filter.genre !== null || filter.favoritesOnly;
+  return (
+    filter.query.trim() !== '' ||
+    filter.platform !== null ||
+    filter.genre !== null ||
+    filter.favoritesOnly ||
+    filter.tasteOnly
+  );
 }
 
 /** 대소문자와 공백 차이를 무시하고 비교하기 위한 정규화 ("엘든 링" ↔ "엘든링", "ELDEN RING" ↔ "Elden Ring") */
@@ -19,7 +27,12 @@ function normalize(text: string): string {
   return text.toLocaleLowerCase().replace(/\s+/g, '');
 }
 
-export function filterGames(games: Game[], filter: GameFilter, isFavorite: (gameId: number) => boolean): Game[] {
+export function filterGames(
+  games: Game[],
+  filter: GameFilter,
+  isFavorite: (gameId: number) => boolean,
+  matchesTaste: (game: Game) => boolean = () => false,
+): Game[] {
   if (!isFilterActive(filter)) return games;
 
   const query = normalize(filter.query);
@@ -28,7 +41,8 @@ export function filterGames(games: Game[], filter: GameFilter, isFavorite: (game
       (query === '' || normalize(game.name).includes(query)) &&
       (filter.platform === null || game.platforms.includes(filter.platform)) &&
       (filter.genre === null || game.genres.includes(filter.genre)) &&
-      (!filter.favoritesOnly || isFavorite(game.id)),
+      (!filter.favoritesOnly || isFavorite(game.id)) &&
+      (!filter.tasteOnly || matchesTaste(game)),
   );
 }
 

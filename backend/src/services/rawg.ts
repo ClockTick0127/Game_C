@@ -4,6 +4,7 @@ import { HttpError } from '../utils/http.ts';
 import { normalizeTitle } from '../utils/text.ts';
 import { isAdultGame } from './contentFilter.ts';
 import { dedupeGames } from './dedupe.ts';
+import { personaFromNames } from './gameStyle.ts';
 
 const BASE_URL = 'https://api.rawg.io/api';
 /** RAWG가 허용하는 최대 페이지 크기 */
@@ -23,7 +24,7 @@ interface RawgGame {
   metacritic: number | null;
   platforms: { platform: { id: number; name: string } }[] | null;
   genres: { id: number; name: string }[] | null;
-  tags: { slug: string }[] | null;
+  tags: { slug: string; name?: string }[] | null;
   esrb_rating: { slug: string } | null;
 }
 
@@ -76,6 +77,10 @@ function normalize(game: RawgGame): Game {
     platforms: game.platforms?.map((p) => p.platform.name) ?? [],
     genres: game.genres?.map((g) => g.name) ?? [],
     url: `https://rawg.io/games/${game.slug}`,
+    persona: personaFromNames([
+      ...(game.tags ?? []).map((t) => t.name ?? t.slug),
+      ...(game.genres ?? []).map((g) => g.name),
+    ]),
   };
 }
 

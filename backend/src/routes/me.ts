@@ -13,6 +13,7 @@ import {
 } from '../services/customLibrary.ts';
 import { deleteGameLog, listGameLogs, parseGameLog, saveGameLog } from '../services/gameLog.ts';
 import { getPersonas, requestStyles } from '../services/gameStyle.ts';
+import { getTaste } from '../services/taste.ts';
 import { getLibraryOrder, parseLibraryOrder, saveLibraryOrder } from '../services/libraryOrder.ts';
 import { searchGamesAny } from '../services/koreanSearch.ts';
 import { IS_SAMPLE_MODE } from '../services/releases.ts';
@@ -158,6 +159,11 @@ meRouter.get('/steam/games', steamDataLimiter, async (req, res) => {
     games: owned.games.map((g) => ({ ...g, persona: personas.get(g.appId) ?? null })),
     stylesPending: ids.length - personas.size,
   });
+});
+
+/** GET /api/me/taste — 보유 게임으로 알아낸 분위기별 취향. 캘린더가 취향에 맞는 출시 예정 게임을 강조하는 데 쓴다 (Steam 연동 필요) */
+meRouter.get('/taste', steamDataLimiter, async (req, res) => {
+  res.json(await getTaste(currentUser(req).id, linkedSteamId(req)));
 });
 
 /** GET /api/me/steam/achievement-summary — 플레이 시간 상위 게임들의 업적 달성 현황 (게임마다 Steam을 불러 비싸므로 요청할 때만 계산한다) */

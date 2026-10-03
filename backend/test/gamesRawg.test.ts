@@ -871,3 +871,53 @@ describe('GET /api/games/find — 전체 게임 검색', () => {
     assert.equal((await get(`/api/games/find?q=${'a'.repeat(101)}`)).status, 400);
   });
 });
+
+describe('GET /api/games — 분위기(persona)', () => {
+  it('RAWG 태그·장르 이름으로 분위기를 짐작해 내려준다 (흔한 "액션"보다 구체적인 분위기가 우선)', async () => {
+    withExternal(() =>
+      json({
+        count: 4,
+        next: null,
+        results: [
+          rawgGame({
+            id: 8101,
+            name: 'Scary One',
+            released: '2027-03-01',
+            tags: [
+              { slug: 'horror', name: 'Horror' },
+              { slug: 'shooter', name: 'Shooter' },
+              { slug: 'action', name: 'Action' },
+            ],
+            genres: [{ id: 4, name: 'Action' }],
+          }),
+          rawgGame({
+            id: 8102,
+            name: 'Space One',
+            released: '2027-03-02',
+            tags: [{ slug: 'sci-fi' }, { slug: 'cyberpunk' }],
+            genres: [{ id: 2, name: 'Shooter' }],
+          }),
+          rawgGame({
+            id: 8103,
+            name: 'Racer One',
+            released: '2027-03-03',
+            tags: [],
+            genres: [{ id: 1, name: 'Racing' }],
+          }),
+          rawgGame({
+            id: 8104,
+            name: 'Puzzle One',
+            released: '2027-03-04',
+            tags: [],
+            genres: [{ id: 7, name: 'Puzzle' }],
+          }),
+        ],
+      }),
+    );
+    const res = await get('/api/games?start=2027-03-01&end=2027-03-31');
+    const byId = Object.fromEntries(
+      (res.json.games as { id: number; persona: string | null }[]).map((g) => [g.id, g.persona]),
+    );
+    assert.deepEqual(byId, { 8101: 'horror', 8102: 'scifi', 8103: 'sports', 8104: null });
+  });
+});

@@ -3,12 +3,11 @@ import { useSearchParams } from 'react-router';
 import { errorMessage } from '../api/client';
 import { findGames } from '../api/games';
 import * as meApi from '../api/me';
-import { DDay } from '../components/DDay';
 import { GameDetailModal } from '../components/GameDetail';
-import { GameThumb } from '../components/GameThumb';
+import { GameListItem } from '../components/GameListItem';
 import { LibraryAddButton, type LibraryStatus } from '../components/LibraryAddButton';
+import { SearchSuggestions } from '../components/SearchSuggestions';
 import { useAuth } from '../contexts/AuthContext';
-import { useFavorites } from '../contexts/FavoritesContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import type { Game } from '../types';
 import { normalizeGameName } from '../utils/library';
@@ -31,7 +30,6 @@ export function SearchPage() {
   useDocumentTitle('게임 검색');
   const { user } = useAuth();
   const userId = user?.id;
-  const { isFavorite } = useFavorites();
   const [searchParams, setSearchParams] = useSearchParams();
   const q = (searchParams.get('q') ?? '').trim();
 
@@ -128,7 +126,9 @@ export function SearchPage() {
         </button>
       </form>
 
-      {!q ? null : !result ? (
+      {!q ? (
+        <SearchSuggestions onOpen={setSelected} />
+      ) : !result ? (
         <p className="page-status">&quot;{q}&quot;을(를) 찾는 중…</p>
       ) : result.kind === 'error' ? (
         <div className="banner error">
@@ -149,22 +149,7 @@ export function SearchPage() {
           <ul className="search-results">
             {result.games.map((game) => (
               <li key={game.id}>
-                <button type="button" className="list-item" onClick={() => setSelected(game)}>
-                  <GameThumb game={game} className="day-thumb" />
-                  <span className="day-info">
-                    <strong>
-                      {game.name}
-                      {isFavorite(game.id) && (
-                        <span className="list-star" aria-label="관심 게임">
-                          {' '}
-                          ★
-                        </span>
-                      )}
-                    </strong>
-                    <span>{summary(game)}</span>
-                  </span>
-                  {game.released && <DDay released={game.released} />}
-                </button>
+                <GameListItem game={game} summary={summary(game)} onOpen={setSelected} />
               </li>
             ))}
           </ul>

@@ -9,6 +9,25 @@ const games = [
 ];
 const never = () => false;
 
+describe('filterGames — 내 취향만', () => {
+  it('취향에 맞는 게임만 남기고, 필터가 켜진 것으로 센다', () => {
+    const filter = { ...NO_FILTER, tasteOnly: true };
+    expect(isFilterActive(filter)).toBe(true);
+    expect(
+      filterGames(
+        games,
+        filter,
+        () => false,
+        (g) => g.id === 3,
+      ).map((g) => g.id),
+    ).toEqual([3]);
+  });
+
+  it('취향 판별 함수를 주지 않으면 아무것도 맞지 않는다', () => {
+    expect(filterGames(games, { ...NO_FILTER, tasteOnly: true }, () => false)).toEqual([]);
+  });
+});
+
 describe('filterGames', () => {
   it('필터가 없으면 같은 배열을 그대로 돌려준다', () => {
     expect(isFilterActive(NO_FILTER)).toBe(false);

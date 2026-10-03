@@ -1,4 +1,5 @@
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useTaste } from '../contexts/TasteContext';
 import type { Game } from '../types';
 import { toDateKey, WEEKDAYS, type CalendarDay } from '../utils/calendar';
 import { GameThumb } from './GameThumb';
@@ -16,6 +17,7 @@ interface Props {
 /** 한 주를 요일별 세로 목록으로 보여준다. 월간 보기와 달리 게임을 접지 않고 모두 보여준다. */
 export function WeekView({ days, gamesByDate, selectedGameId, selectedDay, onSelectGame, onSelectDay }: Props) {
   const { isFavorite } = useFavorites();
+  const taste = useTaste();
   const todayKey = toDateKey(new Date());
 
   return (
@@ -57,6 +59,7 @@ export function WeekView({ days, gamesByDate, selectedGameId, selectedDay, onSel
                       className={[
                         'game-chip',
                         isFavorite(game.id) && 'favorite',
+                        taste.match(game) && 'taste',
                         game.id === selectedGameId && 'selected',
                       ]
                         .filter(Boolean)
@@ -67,6 +70,11 @@ export function WeekView({ days, gamesByDate, selectedGameId, selectedDay, onSel
                     >
                       <GameThumb game={game} className="chip-thumb" />
                       <span className="chip-name">{game.name}</span>
+                      {taste.match(game) && (
+                        <span className="chip-taste" role="img" aria-label="취향에 맞는 게임">
+                          ✦
+                        </span>
+                      )}
                       {isFavorite(game.id) && (
                         <span className="chip-star" aria-label="관심 게임">
                           ★

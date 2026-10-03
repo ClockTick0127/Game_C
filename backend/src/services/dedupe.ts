@@ -24,6 +24,7 @@ function merge(keep: Game, dup: Game): Game {
     metacritic: keep.metacritic ?? dup.metacritic,
     platforms: union(keep.platforms, dup.platforms),
     genres: union(keep.genres, dup.genres),
+    persona: keep.persona ?? dup.persona,
   };
 }
 

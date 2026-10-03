@@ -3,8 +3,10 @@ import { useLocation, useNavigate } from 'react-router';
 import { errorMessage } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useTaste } from '../contexts/TasteContext';
 import type { Game } from '../types';
 import { formatKoreanDate } from '../utils/calendar';
+import { tasteReason } from '../utils/taste';
 import { loginPath } from '../utils/redirect';
 import { GameThumb } from './GameThumb';
 import { Modal } from './Modal';
@@ -97,12 +99,18 @@ export function GameDetail({
   /** 관심 게임 버튼 옆에 더할 버튼 (예: 서재에 추가) */
   actions?: ReactNode;
 }) {
+  const taste = useTaste().match(game);
   return (
     <>
       <GameThumb game={game} className="detail-hero" />
       <div className="detail-body">
         <h2 className="detail-title">{game.name}</h2>
         <p className="detail-sub">출시일 {game.released ? formatKoreanDate(game.released) : '미정'}</p>
+        {taste && (
+          <p className="detail-taste">
+            <span aria-hidden="true">✦</span> 내 서재와 잘 맞아요 · {tasteReason(taste)}
+          </p>
+        )}
 
         <dl className="detail-meta">
           <dt>플랫폼</dt>

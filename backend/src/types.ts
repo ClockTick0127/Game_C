@@ -1,3 +1,5 @@
+import type { Persona } from './services/gameStyle.ts';
+
 /** 클라이언트에 내려주는 게임 정보. frontend/src/types.ts와 동일하게 유지할 것. */
 export interface Game {
   id: number;
@@ -11,6 +13,8 @@ export interface Game {
   genres: string[];
   /** 상세 정보 페이지 링크 (샘플 데이터는 null) */
   url: string | null;
+  /** RAWG 태그·장르로 짐작한 분위기(서재 취향 추천에 쓴다). 모르면 null이거나 없다 */
+  persona?: Persona | null;
 }
 
 export interface StoreLink {

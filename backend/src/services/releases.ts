@@ -1,5 +1,5 @@
 import { RAWG_API_KEY } from '../config.ts';
-import type { ReleasesResponse } from '../types.ts';
+import type { Game, ReleasesResponse } from '../types.ts';
 import { createPromiseCache } from '../utils/cache.ts';
 import { parseDateKey, toDateKey } from '../utils/date.ts';
 import { fetchReleases, type ReleasesResult } from './rawg.ts';
@@ -31,6 +31,26 @@ function monthsBetween(start: string, end: string): { key: string; first: string
     months.push({ key: first.slice(0, 7), first, last: toDateKey(new Date(d.getFullYear(), d.getMonth() + 1, 0)) });
   }
   return months;
+}
+
+/** 한 달 안에서 인기순(RAWG 정렬 -added)으로 몇 번째인지를 0~1로 바꾼 값(1이 가장 인기)과 함께 돌려준다 */
+export interface RankedGame {
+  game: Game;
+  popularity: number;
+}
+
+/** getReleases와 같은 기간 조회인데, 게임마다 인기 순위(달 기준)를 함께 돌려준다. 추천 게임을 고를 때 쓴다 */
+export async function getRankedReleases(start: string, end: string): Promise<RankedGame[]> {
+  if (IS_SAMPLE_MODE) {
+    const games = getSampleReleases(start, end);
+    return games.map((game, i) => ({ game, popularity: 1 - i / games.length }));
+  }
+  const results = await Promise.all(
+    monthsBetween(start, end).map((m) => cachedMonth(m.key, () => fetchReleases(m.first, m.last))),
+  );
+  return results
+    .flatMap((r) => r.games.map((game, i) => ({ game, popularity: 1 - i / r.games.length })))
+    .filter(({ game }) => game.released >= start && game.released <= end);
 }
 
 export async function getReleases(start: string, end: string): Promise<ReleasesResponse> {

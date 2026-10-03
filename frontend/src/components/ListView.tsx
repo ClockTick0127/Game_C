@@ -1,4 +1,5 @@
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useTaste } from '../contexts/TasteContext';
 import type { Game } from '../types';
 import { formatKoreanDate, toDateKey } from '../utils/calendar';
 import { DDay } from './DDay';
@@ -15,6 +16,7 @@ interface Props {
 /** 출시일 순 목록 (아젠다). 모바일에서 월간 격자보다 훨씬 읽기 쉽다. */
 export function ListView({ gamesByDate, selectedGameId, onSelectGame, emptyMessage }: Props) {
   const { isFavorite } = useFavorites();
+  const taste = useTaste();
   const todayKey = toDateKey(new Date());
   // YYYY-MM-DD 형식이라 문자열 정렬이 곧 날짜 정렬이다
   const dateKeys = [...gamesByDate.keys()].sort();
@@ -42,6 +44,12 @@ export function ListView({ gamesByDate, selectedGameId, onSelectGame, emptyMessa
                   <span className="day-info">
                     <strong>
                       {game.name}
+                      {taste.match(game) && (
+                        <span className="list-taste" role="img" aria-label="취향에 맞는 게임">
+                          {' '}
+                          ✦
+                        </span>
+                      )}
                       {isFavorite(game.id) && (
                         <span className="list-star" aria-label="관심 게임">
                           {' '}

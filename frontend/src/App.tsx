@@ -4,6 +4,7 @@ import { NavBar } from './components/NavBar';
 import { RequireAuth } from './components/RequireAuth';
 import { AuthProvider } from './contexts/AuthContext';
 import { FavoritesProvider } from './contexts/FavoritesContext';
+import { TasteProvider } from './contexts/TasteContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { CalendarPage } from './pages/CalendarPage';
 import { GotyPage } from './pages/GotyPage';
@@ -23,45 +24,47 @@ export default function App() {
       <ToastProvider>
         <AuthProvider>
           <FavoritesProvider>
-            <div className="app">
-              <NavBar />
-              <main>
-                <ErrorBoundary>
-                  <Routes>
-                    <Route path="/" element={<CalendarPage />} />
-                    <Route path="/search" element={<SearchPage />} />
-                    <Route path="/popular" element={<PopularPage />} />
-                    <Route path="/goty" element={<GotyPage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/u/:nickname" element={<ShowcasePage />} />
-                    <Route
-                      path="/library"
-                      element={
-                        <RequireAuth>
-                          <LibraryPage />
-                        </RequireAuth>
-                      }
-                    />
-                    <Route
-                      path="/mypage"
-                      element={
-                        <RequireAuth>
-                          <MyPage />
-                        </RequireAuth>
-                      }
-                    />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </ErrorBoundary>
-              </main>
-              <footer className="footer">
-                게임 데이터 제공:{' '}
-                <a href="https://rawg.io" target="_blank" rel="noreferrer">
-                  RAWG
-                </a>
-              </footer>
-            </div>
+            <TasteProvider>
+              <div className="app">
+                <NavBar />
+                <main>
+                  <ErrorBoundary>
+                    <Routes>
+                      <Route path="/" element={<CalendarPage />} />
+                      <Route path="/search" element={<SearchPage />} />
+                      <Route path="/popular" element={<PopularPage />} />
+                      <Route path="/goty" element={<GotyPage />} />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/signup" element={<SignupPage />} />
+                      <Route path="/u/:nickname" element={<ShowcasePage />} />
+                      <Route
+                        path="/library"
+                        element={
+                          <RequireAuth>
+                            <LibraryPage />
+                          </RequireAuth>
+                        }
+                      />
+                      <Route
+                        path="/mypage"
+                        element={
+                          <RequireAuth>
+                            <MyPage />
+                          </RequireAuth>
+                        }
+                      />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </ErrorBoundary>
+                </main>
+                <footer className="footer">
+                  게임 데이터 제공:{' '}
+                  <a href="https://rawg.io" target="_blank" rel="noreferrer">
+                    RAWG
+                  </a>
+                </footer>
+              </div>
+            </TasteProvider>
           </FavoritesProvider>
         </AuthProvider>
       </ToastProvider>

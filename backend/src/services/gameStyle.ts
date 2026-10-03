@@ -88,6 +88,47 @@ export function derivePersona(tags: Record<string, number> | null | undefined): 
   return bestScore >= top * 0.1 ? best : 'default';
 }
 
+/** 태그·장르 이름 비교용: 대소문자와 기호를 무시한다 ("Sci-fi" · "sci-fi" · "SciFi"가 같게) */
+const normalizeTag = (name: string) => name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
+const PERSONA_BY_TAG = new Map<string, Persona>(
+  (Object.entries(TAGS) as [Exclude<Persona, 'default'>, string[]][]).flatMap(([persona, names]) =>
+    names.map((name) => [normalizeTag(name), persona] as const),
+  ),
+);
+// RAWG 장르 중 SteamSpy 태그 목록에는 없지만 분위기를 알려 주는 것
+PERSONA_BY_TAG.set(normalizeTag('Family'), 'cute');
+
+/** "Action"·"Shooter" 같은 흔한 태그는 거의 모든 게임에 붙어서, 다른 분위기보다 약하게 센다 */
+const WEAK_PERSONA: Persona = 'action';
+
+/**
+ * 아직 출시되지 않은 게임의 분위기. SteamSpy 태그는 득표 수가 있어 derivePersona가 쓰지만, RAWG는 태그 이름만 줘서
+ * 이름이 몇 개나 맞는지로 고른다. 흔한 "액션"은 절반으로 세고, 동점이면 PERSONAS 순서(공포 → … → 액션)가 앞선 쪽이 이긴다.
+ * 어느 분위기에도 맞는 이름이 없으면 null(모른다)이다.
+ */
+export function personaFromNames(names: string[]): Persona | null {
+  const matched = new Set<string>();
+  const score = new Map<Persona, number>();
+  for (const name of names) {
+    const key = normalizeTag(name);
+    const persona = PERSONA_BY_TAG.get(key);
+    if (!persona || matched.has(key)) continue;
+    matched.add(key);
+    score.set(persona, (score.get(persona) ?? 0) + (persona === WEAK_PERSONA ? 0.5 : 1));
+  }
+  let best: Persona | null = null;
+  let bestScore = 0;
+  for (const persona of PERSONAS) {
+    const value = score.get(persona) ?? 0;
+    if (value > bestScore) {
+      best = persona;
+      bestScore = value;
+    }
+  }
+  return best;
+}
+
 const selectMany = (count: number) =>
   db.prepare(`SELECT appid, persona FROM game_styles WHERE appid IN (${Array(count).fill('?').join(',')})`);
 const upsert = db.prepare(`

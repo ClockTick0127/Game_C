@@ -9,6 +9,7 @@ import type {
   SteamStatus,
   SteamWishlist,
   SteamWishlistImportResult,
+  Taste,
   User,
 } from '../types';
 import { request } from './client';
@@ -75,6 +76,11 @@ export function fetchSteamAchievements(appId: number): Promise<SteamAchievements
 /** 플레이 시간 상위 게임들의 업적 달성 현황. 게임마다 Steam을 불러서 몇 초 걸릴 수 있다 */
 export function fetchAchievementSummary(): Promise<AchievementSummary> {
   return request('/api/me/steam/achievement-summary');
+}
+
+/** 보유 게임으로 알아낸 분위기별 취향 (Steam 연동 필요). 캘린더가 취향에 맞는 출시 예정 게임을 강조한다 */
+export function fetchTaste(): Promise<Taste> {
+  return request('/api/me/taste');
 }
 
 export function fetchSteamWishlist(): Promise<SteamWishlist> {

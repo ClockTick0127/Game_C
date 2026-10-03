@@ -11,6 +11,28 @@ export interface Game {
   genres: string[];
   /** 상세 정보 페이지 링크 (샘플 데이터는 null) */
   url: string | null;
+  /** RAWG 태그·장르로 짐작한 분위기. 서재 취향과 맞춰 보는 데 쓴다. 모르면 null이거나 없다 */
+  persona?: Persona | null;
+}
+
+/** GET /api/games/suggestions 응답. backend/src/services/suggestions.ts와 동일하게 유지할 것 */
+export interface Suggestions {
+  /** true면 서재 취향으로 고른 것이고, false면 취향을 알 수 없어 인기 있는 예정작만 고른 것이다 */
+  personalized: boolean;
+  /** 취향으로 삼은 분위기들(좋아하는 순) */
+  liked: Persona[];
+  games: Game[];
+}
+
+/** GET /api/me/taste 응답. backend/src/services/taste.ts와 동일하게 유지할 것 */
+export interface Taste {
+  /** 분위기별 취향(0~1). 가장 즐겨 하는 분위기가 1이고, 아직 계산할 수 없으면 비어 있다 */
+  affinity: Partial<Record<Persona, number>>;
+  /** 분위기를 알아낸 보유 게임 수 / 전체 보유 게임 수 */
+  analyzed: number;
+  total: number;
+  /** 취향을 믿어도 되는지 */
+  ready: boolean;
 }
 
 export interface User {

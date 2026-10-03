@@ -223,3 +223,72 @@ describe('SearchPage', () => {
     });
   });
 });
+
+describe('SearchPage — 첫 화면 추천', () => {
+  const upcoming = makeGame(11, {
+    name: 'Starfall',
+    released: '2099-03-05',
+    persona: 'scifi',
+    platforms: ['PC', 'PlayStation 5'],
+  });
+  const other = makeGame(12, { name: 'Cozy Farm', released: '2099-04-01', persona: 'cute' });
+  const personalized = { personalized: true, liked: ['scifi' as const, 'fantasy' as const], games: [upcoming] };
+
+  it('검색어가 없으면 추천을 불러와 서재 취향 기준이라고 밝히고, 맞는 이유를 붙인다', async () => {
+    vi.mocked(authApi.fetchMe).mockResolvedValue({ user: { ...testUser, steamId: '76561198000000001' } });
+    vi.mocked(gamesApi.fetchSuggestions).mockResolvedValue(personalized);
+    renderSearch();
+
+    const section = await screen.findByRole('region', { name: '추천 게임' });
+    expect(within(section).getByRole('heading', { name: '내 서재 취향에 맞는 신작·예정작' })).toBeInTheDocument();
+    expect(within(section).getByText(/SF · 판타지 분위기를 기준으로 골랐어요/)).toBeInTheDocument();
+    expect(within(section).getByText('3월 5일 출시 예정 · PC, PlayStation 5')).toBeInTheDocument();
+    expect(within(section).getByText('✦ SF 게임을 즐겨 하시네요.')).toBeInTheDocument();
+    expect(gamesApi.findGames).not.toHaveBeenCalled();
+  });
+
+  it('추천 게임을 누르면 검색 결과와 같은 상세가 열린다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(gamesApi.fetchSuggestions).mockResolvedValue(personalized);
+    renderSearch();
+    await user.click(await screen.findByRole('button', { name: /Starfall/ }));
+    expect(within(screen.getByRole('dialog')).getByRole('heading', { name: 'Starfall' })).toBeInTheDocument();
+  });
+
+  it('취향을 모르면 인기 있는 예정작을 보여 주고, 로그인하면 취향 추천을 받을 수 있다고 안내한다', async () => {
+    vi.mocked(gamesApi.fetchSuggestions).mockResolvedValue({ personalized: false, liked: [], games: [other] });
+    renderSearch();
+
+    const section = await screen.findByRole('region', { name: '추천 게임' });
+    expect(within(section).getByRole('heading', { name: '곧 출시되는 인기 게임' })).toBeInTheDocument();
+    expect(within(section).getByRole('link', { name: '로그인' })).toBeInTheDocument();
+    expect(within(section).queryByText(/즐겨 하시네요/)).not.toBeInTheDocument();
+  });
+
+  it('로그인했지만 Steam을 연동하지 않았으면 연동을 안내한다', async () => {
+    vi.mocked(authApi.fetchMe).mockResolvedValue({ user: testUser });
+    vi.mocked(gamesApi.fetchSuggestions).mockResolvedValue({ personalized: false, liked: [], games: [other] });
+    renderSearch();
+    expect(await screen.findByRole('link', { name: 'Steam을 연동' })).toBeInTheDocument();
+  });
+
+  it('추천이 없거나 불러오지 못해도 검색은 쓸 수 있고, 실패하면 다시 시도할 수 있다', async () => {
+    const user = userEvent.setup();
+    vi.mocked(gamesApi.fetchSuggestions).mockRejectedValueOnce(new ApiError(502, 'RAWG 오류'));
+    vi.mocked(gamesApi.fetchSuggestions).mockResolvedValue({ personalized: false, liked: [], games: [other] });
+    renderSearch();
+    expect(await screen.findByText(/추천 게임을 불러오지 못했어요/)).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: '게임 이름' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: '다시 시도' }));
+    expect(await screen.findByRole('region', { name: '추천 게임' })).toBeInTheDocument();
+  });
+
+  it('검색어가 있으면 추천은 사라지고 검색 결과가 나온다', async () => {
+    vi.mocked(gamesApi.fetchSuggestions).mockResolvedValue(personalized);
+    renderSearch('/search?q=elden');
+    expect(await screen.findByRole('button', { name: /Elden Ring/ })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '추천 게임' })).not.toBeInTheDocument();
+    expect(gamesApi.fetchSuggestions).not.toHaveBeenCalled();
+  });
+});

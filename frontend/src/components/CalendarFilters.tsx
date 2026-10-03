@@ -8,6 +8,8 @@ interface Props {
   genres: string[];
   /** 로그인하지 않았으면 "관심 게임만" 필터를 숨긴다 */
   canFilterFavorites: boolean;
+  /** 서재 취향을 알아낸 사람에게만 "내 취향만" 필터를 보여 준다 */
+  canFilterTaste: boolean;
   /** 필터를 적용한 뒤 / 적용하기 전 게임 수 */
   shownCount: number;
   totalCount: number;
@@ -19,6 +21,7 @@ export function CalendarFilters({
   platforms,
   genres,
   canFilterFavorites,
+  canFilterTaste,
   shownCount,
   totalCount,
 }: Props) {
@@ -75,6 +78,18 @@ export function CalendarFilters({
             onChange={(e) => set({ favoritesOnly: e.target.checked })}
           />
           관심 게임만
+        </label>
+      )}
+
+      {canFilterTaste && (
+        <label className="filter-check" htmlFor={`${id}-taste`}>
+          <input
+            id={`${id}-taste`}
+            type="checkbox"
+            checked={filter.tasteOnly}
+            onChange={(e) => set({ tasteOnly: e.target.checked })}
+          />
+          내 취향만 <span aria-hidden="true">✦</span>
         </label>
       )}
 

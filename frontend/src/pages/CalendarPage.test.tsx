@@ -397,3 +397,81 @@ describe('CalendarPage — 주간·목록 보기', () => {
     expect(main().getByRole('button', { name: /포르자/ })).toBeInTheDocument();
   });
 });
+
+describe('CalendarPage — 서재 취향 강조', () => {
+  const linkedUser = { ...testUser, steamId: '76561198000000001' };
+  const taste = { affinity: { scifi: 1, fantasy: 0.7, cute: 0.2 }, analyzed: 20, total: 30, ready: true };
+  // 오늘은 6월 15일이다. 취향(SF·판타지)에 맞는 예정작 / 취향이 아닌 예정작 / 이미 출시된 SF / 분위기를 모르는 게임
+  const tasteGames = () => [
+    game(1, '별빛 오디세이', 20, { persona: 'scifi' }),
+    game(2, '달빛 정원', 21, { persona: 'cute' }),
+    game(3, '지난 우주선', 5, { persona: 'scifi' }),
+    game(4, '이름 모를 게임', 22),
+  ];
+  const marker = (name: string) =>
+    grid()
+      .getByRole('button', { name: new RegExp(name) })
+      .querySelector('.chip-taste');
+
+  beforeEach(() => {
+    vi.mocked(authApi.fetchMe).mockResolvedValue({ user: linkedUser });
+    vi.mocked(meApi.fetchTaste).mockResolvedValue(taste);
+  });
+
+  it('취향에 맞는 출시 예정 게임에만 표시가 붙는다', async () => {
+    await renderCalendar(tasteGames());
+    await waitFor(() => expect(marker('별빛 오디세이')).not.toBeNull());
+
+    expect(marker('달빛 정원')).toBeNull(); // 취향이 아닌 분위기
+    expect(marker('지난 우주선')).toBeNull(); // 이미 출시됨
+    expect(marker('이름 모를 게임')).toBeNull(); // 분위기를 모름
+    expect(grid().getByRole('button', { name: /별빛 오디세이/ })).toHaveClass('taste');
+  });
+
+  it('"내 취향만"을 켜면 취향에 맞는 게임만 남는다', async () => {
+    const user = userEvent.setup();
+    await renderCalendar(tasteGames());
+    await user.click(await screen.findByRole('checkbox', { name: /내 취향만/ }));
+
+    expect(grid().getByRole('button', { name: /별빛 오디세이/ })).toBeInTheDocument();
+    expect(grid().queryByRole('button', { name: /달빛 정원/ })).not.toBeInTheDocument();
+    expect(grid().queryByRole('button', { name: /이름 모를 게임/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('1개 표시 중 (전체 4개)');
+  });
+
+  it('게임 상세에 서재와 잘 맞는 이유가 나온다', async () => {
+    const user = userEvent.setup();
+    await renderCalendar(tasteGames());
+    await user.click(
+      await within(document.querySelector<HTMLElement>('.cal-grid')!).findByRole('button', { name: /별빛 오디세이/ }),
+    );
+    expect(panel().getByText(/내 서재와 잘 맞아요 · SF 게임을 즐겨 하시네요\./)).toBeInTheDocument();
+
+    await user.click(grid().getByRole('button', { name: /달빛 정원/ }));
+    expect(panel().queryByText(/내 서재와 잘 맞아요/)).not.toBeInTheDocument();
+  });
+
+  it('취향을 아직 믿을 수 없으면(분석한 게임이 적음) 표시도 필터도 없다', async () => {
+    vi.mocked(meApi.fetchTaste).mockResolvedValue({ affinity: {}, analyzed: 2, total: 30, ready: false });
+    await renderCalendar(tasteGames());
+    await waitFor(() => expect(meApi.fetchTaste).toHaveBeenCalled());
+
+    expect(marker('별빛 오디세이')).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: /내 취향만/ })).not.toBeInTheDocument();
+  });
+
+  it('Steam을 연동하지 않았거나 로그인하지 않았으면 취향을 조회하지 않는다', async () => {
+    vi.mocked(authApi.fetchMe).mockResolvedValue({ user: testUser });
+    await renderCalendar(tasteGames());
+    expect(meApi.fetchTaste).not.toHaveBeenCalled();
+    expect(marker('별빛 오디세이')).toBeNull();
+  });
+
+  it('취향을 가져오지 못해도 캘린더는 그대로 쓸 수 있다', async () => {
+    vi.mocked(meApi.fetchTaste).mockRejectedValue(new Error('Steam 오류'));
+    await renderCalendar(tasteGames());
+    await waitFor(() => expect(meApi.fetchTaste).toHaveBeenCalled());
+    expect(grid().getByRole('button', { name: /별빛 오디세이/ })).toBeInTheDocument();
+    expect(marker('별빛 오디세이')).toBeNull();
+  });
+});

@@ -7,6 +7,7 @@ import { SidePanel } from '../components/SidePanel';
 import { WeekView } from '../components/WeekView';
 import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../contexts/FavoritesContext';
+import { useTaste } from '../contexts/TasteContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useMonthlyReleases } from '../hooks/useMonthlyReleases';
 import type { Game } from '../types';
@@ -30,6 +31,7 @@ export function CalendarPage() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const { user } = useAuth();
   const { isFavorite } = useFavorites();
+  const taste = useTaste();
   // 필터는 달을 넘겨도 유지한다 ("RPG만 보면서 다음 달로")
   // 처음에는 마이페이지에서 정해 둔 선호 플랫폼·장르가 기본 필터다
   const [filter, setFilter] = useState<GameFilter>(() => withPreferences(NO_FILTER, user));
@@ -61,7 +63,17 @@ export function CalendarPage() {
     return [...first.games, ...second.games].filter((g) => g.released >= start && g.released <= end);
   }, [isWeek, first.games, second.games, weekDays]);
 
-  const games = useMemo(() => filterGames(allGames, filter, isFavorite), [allGames, filter, isFavorite]);
+  const games = useMemo(
+    () =>
+      filterGames(
+        allGames,
+        // 취향을 아직 알 수 없으면(다른 계정으로 바뀐 직후 등) 켜져 있던 "내 취향만"이 모든 게임을 숨기지 않게 한다
+        taste.ready ? filter : { ...filter, tasteOnly: false },
+        isFavorite,
+        (game) => taste.match(game) !== null,
+      ),
+    [allGames, filter, isFavorite, taste],
+  );
   const gamesByDate = useMemo(() => groupByDate(games), [games]);
   const platforms = useMemo(
     () =>
@@ -159,6 +171,7 @@ export function CalendarPage() {
           platforms={platforms}
           genres={genres}
           canFilterFavorites={user !== null}
+          canFilterTaste={taste.ready}
           shownCount={games.length}
           totalCount={totalCount}
         />
